@@ -1,0 +1,21 @@
+{
+    "files.associations": {
+        "nus.h": "c",
+        "bas.h": "c",
+        "sensor.h": "c",
+        "main.h": "c",
+        "gpio.h": "c",
+        "user_gpio.h": "c",
+        "i2c.h": "c",
+        "user_rtc.h": "c",
+        "rtc.h": "c",
+        "nrfx_gpiote.h": "c",
+        "nrfx_rtc.h": "c",
+        "nrfx_clock.h": "c",
+        "nrf_clock.h": "c",
+        "nrf_lfrc.h": "c",
+        "kernel.h": "c",
+        "user_storage.h": "c",
+        "flash.h": "c"
+    }
+}
