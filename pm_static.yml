@@ -1,0 +1,18 @@
+fatfs_storage:
+  address: 0x0
+  affiliation:
+    - disk
+  device: DT_CHOSEN(nordic_pm_ext_flash)
+  end_address: 0x400000 
+  extra_params:
+    disk_cache_size: 4096
+    disk_name: "NAND"
+    disk_read_only: 0
+    disk_sector_size: 512
+  placement:
+    align:
+      start: 0x1000
+    before:
+      - end
+  region: external_flash
+  size: 0x400000

@@ -162,6 +162,10 @@ static int settings_runtime_load(void)
 int main(void)
 {
 	int err;
+	/* user logic function start ---*/
+	my_rtc_init();
+	yonker_tm_gpio_init();
+	Fatfs_storage_init();
 	/* 注册连接事件回调 */
 	bt_conn_cb_register(&connection_callbacks);	
 	/* 先使能协议栈 */
@@ -195,12 +199,6 @@ int main(void)
 		LOG_ERR("Advertising failed to start (err %d)\n", err);
 		return;
 	}
-	/* user logic function start ---*/
-	my_rtc_init();
-	yonker_tm_gpio_init();
-	Fatfs_storage_init();
-
-
 }
 
 

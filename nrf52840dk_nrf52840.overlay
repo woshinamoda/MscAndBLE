@@ -10,7 +10,22 @@
 
 // For more help, browse the DeviceTree documentation at https://docs.zephyrproject.org/latest/guides/dts/index.html
 // You can also visit the nRF DeviceTree extension documentation at https://docs.nordicsemi.com/bundle/nrf-connect-vscode/page/guides/ncs_configure_app.html#devicetree-support-in-the-extension
+/ {
+    chosen {
+        nordic,pm-ext-flash = &mx25r32;
+    };
+};
 
+/ {
+	msc_disk0 {
+		status="okay";
+		compatible = "zephyr,flash-disk";
+		partition = <&fatfs_storage>;
+		disk-name = "NAND";
+		/* cache-size == page erase size */
+		cache-size = <4096>;
+	};
+};
 
 &qspi_default {
 	group1 {
@@ -192,6 +207,7 @@
 	pinctrl-names = "default", "sleep";
 
 	mx25r32: mx25r3235f@0 {
+		status = "okay";
 		compatible = "nordic,qspi-nor";
 		reg = <0>;
 		jedec-id = [c2 28 16];
@@ -206,5 +222,14 @@
 		t-enter-dpd = <10000>;
 		t-exit-dpd = <35000>;
 		requires-ulbpr;
+		partitions {
+				compatible = "fixed-partitions";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				fatfs_storage: partition@0 {
+						label = "fatfs_storage";
+						reg = <0x00000000 0x00400000>; // 4MB全分区
+			};		
+		};
 	};
 };
