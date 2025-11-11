@@ -31,6 +31,7 @@
 #include "sensor.h"
 #include "user_gpio.h"
 #include "user_rtc.h"
+#include "lcd.h"
 #include "user_storage.h"
 
 
@@ -38,6 +39,7 @@
 #define LOG_MODULE_NAME YKTM_LOG
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 struct bt_conn *my_conn = NULL;
+yongker_TM_initTypedef yk_tm;
 
 /* 蓝牙广播设置相关部分代码* start*****************************************************************/
 static uint8_t bt_mac_add[6] = {0};
@@ -165,7 +167,9 @@ int main(void)
 	/* user logic function start ---*/
 	my_rtc_init();
 	yonker_tm_gpio_init();
+	lcd_ht1621_init();
 	Fatfs_storage_init();
+	display_lcd_init();
 	/* 注册连接事件回调 */
 	bt_conn_cb_register(&connection_callbacks);	
 	/* 先使能协议栈 */

@@ -190,22 +190,28 @@ static void setup_disk(void)
 
 	return;
 }
+/**
+ * @brief ym_tm csv文件初始化
+ */
 static void yk_tm_cvs_init()
 {
   fs_file_t_init(&chn0_file);
-  fs_file_t_init(&chn1_file);  
+  fs_file_t_init(&chn1_file);
   fs_file_t_init(&chn2_file);
   int rc1 = fs_open(&chn0_file, "/NAND:/ch0.csv", FS_O_CREATE | FS_O_RDWR);
   int rc2 = fs_open(&chn1_file, "/NAND:/ch1.csv", FS_O_CREATE | FS_O_RDWR);
   int rc3 = fs_open(&chn2_file, "/NAND:/ch2.csv", FS_O_CREATE | FS_O_RDWR);
   if (rc1 >= 0) {
     fs_write(&chn0_file, ch0_title, sizeof(ch0_title));
+    fs_write(&chn0_file, fifle_header, sizeof(fifle_header));
   }
   if (rc2 >= 0) {
     fs_write(&chn1_file, ch1_title, sizeof(ch1_title));
+    fs_write(&chn1_file, fifle_header, sizeof(fifle_header));    
   }
   if (rc3 >= 0) {
     fs_write(&chn2_file, ch2_title, sizeof(ch2_title));
+    fs_write(&chn2_file, fifle_header, sizeof(fifle_header));    
   }
   if (rc1 >= 0) {
     fs_close(&chn0_file);
@@ -216,7 +222,6 @@ static void yk_tm_cvs_init()
   if (rc3 >= 0) {
     fs_close(&chn2_file);
   }
-
 }
 /**
  * @brief 测试mx25r32设备是否存在
@@ -227,6 +232,8 @@ static void mx25r32_flash_init()
   err = device_is_ready(flash_dev);
   printk("flash dev is :%d \n", err);
 }
+/**********************************************************/
+
 void Fatfs_storage_init()
 {
   int err;
@@ -236,6 +243,27 @@ void Fatfs_storage_init()
   yk_tm_cvs_init();
   usb_enable(NULL);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

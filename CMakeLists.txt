@@ -13,4 +13,5 @@ target_sources(app PRIVATE
  src/user_workQueue.c
  src/user_rtc.c
  src/user_storage.c
+ src/lcd.c
  )

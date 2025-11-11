@@ -68,9 +68,23 @@
 #define IS_WIFI                NRF_GPIO_PIN_MAP(0,19)
 #define IS_FLASH               NRF_GPIO_PIN_MAP(0,17)
 
+#define GPIO_SET(pin,state)   ((state) ? nrf_gpio_pin_set(pin) : nrf_gpio_pin_clear(pin))           
 
+typedef struct
+{
+  bool      bt_sta;
+  uint8_t   strength;
+  bool      storage_sta;
+  uint8_t   channel_num;
+  uint8_t   channel_type;
+  bool      charging_sta;
+  uint8_t   bat_level;
+  bool      temp_type;
+  uint16_t  temp_celsius;       //精确到小数点1位
+  uint16_t  temp_fahrenheit;    //精确到小数点1位
+}yongker_TM_initTypedef;
 
-
+extern yongker_TM_initTypedef yk_tm;
 
 
 
