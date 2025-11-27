@@ -16,19 +16,16 @@
 // #include <nrfx_rtc.h>
 // #include <nrfx_clock.h>
 // static const nrfx_rtc_t rtc = NRFX_RTC_INSTANCE(1);
-
-
-uint32_t					myTimeStamp;				//以秒为单位，总共计时
-
-
 timeinfo_TypeDef	timeInfo_stamp ={			//阳历(公历)形式时间戳
 	.year  = 2025, //start by 2000 max to 2088 for all sec cnt
 	.month = 10,
 	.day	 = 25,
-	.hour  = 14,
-	.min   = 00,
+	.hour  = 23,
+	.min   = 59,
 	.sec   = 00,
-};				
+};
+static uint8_t interval_compare = 0;
+
 /**
  * @brief 判断是否闰年
  * 
@@ -40,7 +37,6 @@ static bool is_leap_year(uint16_t year)
 {
 	return (year % 4 ==0 && year % 100 !=0) || (year % 400 == 0);
 }
-
 static uint8_t month_day_is(uint16_t year, uint8_t month)
 {
 	if(month == 2 && is_leap_year(year)){
@@ -53,94 +49,62 @@ static uint8_t month_day_is(uint16_t year, uint8_t month)
 }
 /**
  * @brief 从起始时间2000-01-01-00-00-00开始，用累计秒数统计年月日时分秒
- * 
- * @param secall 累计总秒数
- * @param tm 年月日时分秒clock结构体指针。
  */
-static void secAll_to_timeInfo(uint32_t secall, timeinfo_TypeDef *tm)
+static void secAll_to_timeInfo(timeinfo_TypeDef *tm)
 {
-	uint32_t days = secall / 86400;
-	uint32_t remain_sec = secall % 86400;
-	/* 反推时分秒 */
-	tm->hour = remain_sec / 3600;
-	tm->min = (remain_sec % 3600) / 60;
-	tm->sec = remain_sec % 60; //直接取最小单位即可，不用在除多余的。
-
-	/* 反推年 */
-	tm->year = 2000;
-	while(days >= 365){
-		uint16_t days_in_year = is_leap_year(tm->year) ? 366 : 365;
-		if(days < days){ //剩余日期不满一年
-			break;
-		}
-		days = days - days_in_year;
-		tm->year++;
-	}
-	
-	/* 反推月日 */
-	tm->month = 1;
-	for(int i = 0; i <12; i++){
-		uint8_t days_in_current_month = month_day_is(tm->year,tm->month);
-		if(days < days_in_current_month){ //剩余日期不满对应平/润年当月日期
-			break;
-		}
-		days = days - days_in_current_month;
-		tm->month++;
-	
-		//1-12量程限制
-		if(tm->min >12){
-			tm->min = 12;
-			days = month_day_is(tm->year, 12) - 1;
-			break;
-		}
-	}
-	tm->day = days + 1; //天数从0开始，日期从1开始+1
-}
-/**
- * @brief 从当前的年月日，推算时间总描述
- * 
- * @param tm tm->year 必须大于2000
- * @return uint32_t 
- */
-static uint32_t timeInfo_to_secconds(timeinfo_TypeDef *tm)
-{
-	uint32_t total_secconds = 0;
-	//计算从2000年 - 当前年数的总天数
-	for(uint16_t year = 2000; year < tm->year; year++)
+	tm->sec++;
+	if(tm->sec % 3 == 0){
+		interval_compare++;	//测试用的，每过3sec发一次，存一次数据
+		send_yktm_Data(interval_compare);
+	}	
+	if(tm->sec >= 60)
 	{
-		total_secconds += is_leap_year(year) ? 31622400 : 31536000; //闰年比平年多了86400sec
+		tm->sec = 0;
+		tm->min++;
+		// interval_compare++;	//每过1min，用于对比时间间隔的变量也自增
+		// send_yktm_Data(interval_compare);
+		/*min -> hour */
+		if(tm->min >= 60)
+		{
+			tm->min = 0;
+			tm->hour++;
+			/*hour -> day */
+			if(tm->hour >= 24)
+			{
+				tm->hour = 0;
+				tm->day++;
+				/*获取当月天数*/
+				uint8_t days_in_month = month_day_is(tm->year, tm->month);
+				/*day -> month*/
+				if(tm->day > days_in_month)
+				{
+					tm->day = 1;
+					tm->month++;
+					/*month -> year*/
+					if(tm->month > 12)
+					{
+						tm->month = 1;
+						tm->year++;
+					}
+				}
+			}
+		}
 	}
-	//计算当年已过多少月，转换对应月数的天数
-	for(uint8_t month = 1; month < tm->month; month++)
-	{
-		total_secconds += month_day_is(tm->year, month) * 86400;
-	}
-	//当月已过天数
-	total_secconds += (tm->day - 1) * 86400;
-	//当前时分秒
-	total_secconds += tm->hour * 3600 + tm->min * 60 + tm->sec;
-	//返回累计总秒数
-	return total_secconds;
 }
+static uint8_t last_minth;
 static void timer0_RTC_handle(struct k_timer *dummy)		//timer tick = 10ms
 {
-	myTimeStamp++;
+	last_minth = timeInfo_stamp.min;
+	secAll_to_timeInfo(&timeInfo_stamp);	
+	if(timeInfo_stamp.min!=last_minth)
+	{
+		last_minth = timeInfo_stamp.min;
+		refresh_flag.rtc_sta = true;
+	}
 }
 static K_TIMER_DEFINE(timer0, timer0_RTC_handle, NULL);
-void printf_user_NowTime()
-{
-	secAll_to_timeInfo(myTimeStamp, &timeInfo_stamp);
-	printk("%04d-%02d-%02d %02d:%02d:%02d\n", 
-	timeInfo_stamp.year , timeInfo_stamp.month , timeInfo_stamp.day,
-	timeInfo_stamp.hour , timeInfo_stamp.min,    timeInfo_stamp.sec);
-}
 void my_rtc_init()
 {
-	nrfx_err_t err_code;
-
-	//初始化时间累积	
-	myTimeStamp = timeInfo_to_secconds(&timeInfo_stamp);
-
 	k_timer_start(&timer0, K_MSEC(1), K_MSEC(1000));
 }
 

@@ -129,6 +129,12 @@
 
 &button0 {
 	gpios = <&gpio1 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	label = "key";
+};
+
+&button1 {
+	gpios = <&gpio0 31 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	label = "vcheck";
 };
 
 &led0 {
@@ -152,10 +158,6 @@
 };
 
 &button2 {
-	gpios = <&gpio0 30 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-};
-
-&button1 {
 	gpios = <&gpio0 30 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 };
 

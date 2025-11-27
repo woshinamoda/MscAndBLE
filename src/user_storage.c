@@ -36,6 +36,7 @@
 #include <zephyr/usb/usbd.h>
 #include <zephyr/usb/class/usbd_msc.h>
 #include <zephyr/logging/log.h>
+#include "user_rtc.h"
 LOG_MODULE_REGISTER(app);
 
 
@@ -119,6 +120,8 @@ static void setup_disk(void)
 
   /* 初始化目录结构体，防止野指针 */
 	fs_dir_t_init(&dir);
+
+
 
   /* flash分区 */
 	if (IS_ENABLED(CONFIG_DISK_DRIVER_FLASH)) {
@@ -213,15 +216,9 @@ static void yk_tm_cvs_init()
     fs_write(&chn2_file, ch2_title, sizeof(ch2_title));
     fs_write(&chn2_file, fifle_header, sizeof(fifle_header));    
   }
-  if (rc1 >= 0) {
-    fs_close(&chn0_file);
-  }
-  if (rc2 >= 0) {
-    fs_close(&chn1_file);
-  }
-  if (rc3 >= 0) {
-    fs_close(&chn2_file);
-  }
+	fs_close(&chn0_file);
+	fs_close(&chn1_file);
+	fs_close(&chn2_file);
 }
 /**
  * @brief 测试mx25r32设备是否存在
@@ -233,25 +230,395 @@ static void mx25r32_flash_init()
   printk("flash dev is :%d \n", err);
 }
 /**********************************************************/
-
 void Fatfs_storage_init()
 {
-  int err;
   mx25r32_flash_init();
   k_msleep(10);
   setup_disk();
-  yk_tm_cvs_init();
+  //yk_tm_cvs_init();
   usb_enable(NULL);
 }
+void storageCutIn_chn0_data()
+{
+	if(channel_0.channel_type != nosensor)
+	{
+		char line[256];
+		uint16_t len;		
+		fs_file_t_init(&chn0_file);
+		int rc = fs_open(&chn0_file, "/NAND:/ch0.csv", FS_O_CREATE | FS_O_WRITE | FS_O_READ);
+		if (rc < 0) {
+				printk("无法打开文件: %d\n", rc);
+				return;
+		}	
+ 		// 计算写入位置
+		uint16_t header_size = sizeof(ch0_title) + sizeof(fifle_header);
+		uint16_t record_size = 39; //一行多少个字节
+		// 如果存满了，循环到第一条记录，写入表头
+		if (channel_0.storage_idx == 0) {
+			fs_seek(&chn0_file, 0, FS_SEEK_SET);
+			fs_write(&chn0_file, ch0_title, sizeof(ch0_title));
+			fs_write(&chn0_file, fifle_header, sizeof(fifle_header));
+		}
+		// 定位到具体记录位置
+		uint16_t position = header_size + (channel_0.storage_idx * record_size);
+		fs_seek(&chn0_file, position, FS_SEEK_SET);		
 
+		len = snprintf(line, sizeof(line), "%04d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
+										channel_0.storage_idx,
+										channel_0.channel_type,
+										timeInfo_stamp.year, timeInfo_stamp.month, timeInfo_stamp.day,
+										timeInfo_stamp.hour, timeInfo_stamp.min,
+										channel_0.temp_celsius,
+										channel_0.humidity,
+										channel_0.klux);
+		printk("fatfs len is\n", sizeof(line));						
+		if (len > 0 && len < sizeof(line)) 
+		{
+			fs_write(&chn0_file, line, record_size);
+		} else 
+		{
+			printk("格式化错误或缓冲区不足: 需要%d字节\n", len);
+		}
+		fs_close(&chn0_file);
+		channel_0.storage_idx++;		
+		if(channel_0.storage_idx >= 20000){
+			channel_0.storage_idx = 1;
+			channel_0.storage_over = true; //通道0已经存储爆了，轮询过一遍了
+		}
+	}
+}
+void storageCutIn_chn1_data()
+{
+	if(channel_1.channel_type != nosensor)
+	{
+		char line[256];
+		uint16_t len;		
+		fs_file_t_init(&chn1_file);
+		int rc = fs_open(&chn1_file, "/NAND:/ch1.csv", FS_O_CREATE | FS_O_WRITE | FS_O_READ);
+		if (rc < 0) {
+				printk("无法打开文件: %d\n", rc);
+				return;
+		}	
+ 		// 计算写入位置
+		uint16_t header_size = sizeof(ch1_title) + sizeof(fifle_header);
+		uint16_t record_size = 39; //一行多少个字节
+		// 如果存满了，循环到第一条记录，写入表头
+		if (channel_1.storage_idx == 0) {
+			fs_seek(&chn1_file, 0, FS_SEEK_SET);
+			fs_write(&chn1_file, ch1_title, sizeof(ch1_title));
+			fs_write(&chn1_file, fifle_header, sizeof(fifle_header));
+		}
+		// 定位到具体记录位置
+		uint16_t position = header_size + (channel_1.storage_idx * record_size);
+		fs_seek(&chn1_file, position, FS_SEEK_SET);		
 
+		len = snprintf(line, sizeof(line), "%04d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
+										channel_1.storage_idx,
+										channel_1.channel_type,
+										timeInfo_stamp.year, timeInfo_stamp.month, timeInfo_stamp.day,
+										timeInfo_stamp.hour, timeInfo_stamp.min,
+										channel_1.temp_celsius,
+										channel_1.humidity,
+										channel_1.klux);
+		printk("fatfs len is\n", sizeof(line));						
+		if (len > 0 && len < sizeof(line)) 
+		{
+			fs_write(&chn1_file, line, record_size);
+		} else 
+		{
+			printk("格式化错误或缓冲区不足: 需要%d字节\n", len);
+		}
+		fs_close(&chn1_file);
+		channel_1.storage_idx++;		
+		if(channel_1.storage_idx >= 20000){
+			channel_1.storage_idx = 1;
+			channel_1.storage_over = true;
+		}
+	}
+}
+void storageCutIn_chn2_data()
+{
+	if(channel_2.channel_type != nosensor)
+	{
+		char line[256];
+		uint16_t len;		
+		fs_file_t_init(&chn2_file);
+		int rc = fs_open(&chn2_file, "/NAND:/ch2.csv", FS_O_CREATE | FS_O_WRITE | FS_O_READ);
+		if (rc < 0) {
+				printk("无法打开文件: %d\n", rc);
+				return;
+		}	
+ 		// 计算写入位置
+		uint16_t header_size = sizeof(ch2_title) + sizeof(fifle_header);
+		uint16_t record_size = 39; //一行多少个字节
+		// 如果存满了，循环到第一条记录，写入表头
+		if (channel_2.storage_idx == 0) {
+			fs_seek(&chn2_file, 0, FS_SEEK_SET);
+			fs_write(&chn2_file, ch2_title, sizeof(ch2_title));
+			fs_write(&chn2_file, fifle_header, sizeof(fifle_header));
+		}
+		// 定位到具体记录位置
+		uint16_t position = header_size + (channel_2.storage_idx * record_size);
+		fs_seek(&chn2_file, position, FS_SEEK_SET);		
 
+		len = snprintf(line, sizeof(line), "%04d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
+										channel_2.storage_idx,
+										channel_2.channel_type,
+										timeInfo_stamp.year, timeInfo_stamp.month, timeInfo_stamp.day,
+										timeInfo_stamp.hour, timeInfo_stamp.min,
+										channel_2.temp_celsius,
+										channel_2.humidity,
+										channel_2.klux);
+		printk("fatfs len is\n", sizeof(line));						
+		if (len > 0 && len < sizeof(line)) 
+		{
+			fs_write(&chn2_file, line, record_size);
+		} else 
+		{
+			printk("格式化错误或缓冲区不足: 需要%d字节\n", len);
+		}
+		fs_close(&chn2_file);
+		channel_2.storage_idx++;		
+		if(channel_2.storage_idx >= 20000){
+			channel_2.storage_idx = 1;
+			channel_2.storage_over = true;
+		}
+	}
+}
+void storage_clear_allFile()
+{
+	int rc;
+	yk_tm.storage_sta = false;  //停止有可能继续采集
+	channel_0.storage_idx = 0;
+	channel_0.storage_over = false;
+	channel_1.storage_idx = 0;
+	channel_1.storage_over = false;
+	channel_2.storage_idx = 0;
+	channel_2.storage_over = false;		
 
+	rc = fs_unlink("/NAND:/ch0.csv");
+	if (rc == 0) {
+		printk("通道0文件删除成功\n");
+	}
+	rc = fs_unlink("/NAND:/ch1.csv");
+	if (rc == 0) {
+		printk("通道1文件删除成功\n");
+	}
+	rc = fs_unlink("/NAND:/ch2.csv");
+	if (rc == 0) {
+		printk("通道2文件删除成功\n");
+	}		
+}
+uint8_t DataPackSend[240];
+void readStorage_chn0Data_BleSend()
+{
+	uint8_t sendbuf[16] = {0xdd,0xcc};
+	uint8_t line[39]; //固定读取39bytes
+	int record_size = 39; //和写一样，固定一行39bytes，带标点，	
+	int storage_idx,year,hum,klux;	// 解析数据，蓝牙传参要简略
+	int temp;
+	int channel_type,month,day,hour,min;
 
-
-
-
-
+	fs_file_t_init(&chn0_file);
+	int rc = fs_open(&chn0_file, "/NAND:/ch0.csv", FS_O_READ);
+	if (rc < 0) {
+		printk("无法打开文件: %d\n", rc);
+	}
+ 	int header_size = sizeof(ch0_title) + sizeof(fifle_header);
+  // 定位到指定记录
+  int position = header_size + (channel_0.storage_read_idx * record_size);
+	rc = fs_seek(&chn0_file, position, FS_SEEK_SET);
+	if (rc < 0) {
+		printk("定位文件失败: %d\n", rc);
+		fs_close(&chn0_file);
+	}
+	// 开始读数据
+	fs_read(&chn0_file, line, record_size);	
+	// 字符串解析
+	int parsed = sscanf(line,  "%04d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
+											&storage_idx,
+											&channel_type,
+											&year, &month, &day, &hour, &min,
+											&temp,
+											&hum,
+											&klux);
+	printk("parsed is %d:\n\r" ,parsed );
+	if(parsed == 10)
+	{
+		sendbuf[0] = 0xdd;
+		sendbuf[1] = 0xcc;
+		sendbuf[2] = (year >> 8) & 0xff;
+		sendbuf[3] = year & 0xff;
+		sendbuf[4] = month;
+		sendbuf[5] = day;
+		sendbuf[6] = hour;
+		sendbuf[7] = min;
+		sendbuf[8] = 0;		/* 通道0👌 */
+		sendbuf[9] = channel_type;
+		if(channel_type == sht40)
+		{
+			sendbuf[10] = (temp >> 8) & 0xff;
+			sendbuf[11] = temp & 0xff;
+			sendbuf[12] = (hum >> 8) & 0xff;
+			sendbuf[13] = hum & 0xff;
+		}
+		else
+		{
+			sendbuf[10] = (klux >> 8) & 0xff;
+			sendbuf[11] = klux & 0xff;
+			sendbuf[12] = 0x00;
+			sendbuf[13] = 0x00;
+		}
+		sendbuf[14] = (storage_idx >> 8) & 0xff;
+		sendbuf[15] = storage_idx & 0xff;
+	}
+	reback_order_Status(sendbuf , 16);
+	channel_0.storage_read_idx++;
+	if(channel_0.storage_read_idx <= channel_0.storage_idx)
+	{
+		channel_0.storage_read_idx = 0;
+		yk_tm.storage_read_sta = false;
+	}
+	fs_close(&chn0_file);
+}
+void readStorage_chn1Data_BleSend()
+{
+	uint8_t sendbuf[16] = {0xdd,0xcc};
+	uint8_t line[39];
+	int record_size = 39; 
+	int storage_idx,year,hum,klux;	
+	int temp;
+	int channel_type,month,day,hour,min;
+	fs_file_t_init(&chn1_file);
+	int rc = fs_open(&chn1_file, "/NAND:/ch1.csv", FS_O_READ);
+	if (rc < 0) {
+		printk("无法打开文件: %d\n", rc);
+	}
+ 	int header_size = sizeof(ch1_title) + sizeof(fifle_header);
+  int position = header_size + (channel_1.storage_read_idx * record_size);
+	rc = fs_seek(&chn1_file, position, FS_SEEK_SET);
+	if (rc < 0) {
+		printk("定位文件失败: %d\n", rc);
+		fs_close(&chn1_file);
+	}
+	// 开始读数据
+	fs_read(&chn1_file, line, record_size);	
+	// 字符串解析
+	int parsed = sscanf(line,  "%04d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
+											&storage_idx,
+											&channel_type,
+											&year, &month, &day, &hour, &min,
+											&temp,
+											&hum,
+											&klux);
+	printk("parsed is %d:\n\r" ,parsed );
+	if(parsed == 10)
+	{
+		sendbuf[0] = 0xdd;
+		sendbuf[1] = 0xcc;
+		sendbuf[2] = (year >> 8) & 0xff;
+		sendbuf[3] = year & 0xff;
+		sendbuf[4] = month;
+		sendbuf[5] = day;
+		sendbuf[6] = hour;
+		sendbuf[7] = min;
+		sendbuf[8] = 1;		/* 通道0👌 */
+		sendbuf[9] = channel_type;
+		if(channel_type == sht40)
+		{
+			sendbuf[10] = (temp >> 8) & 0xff;
+			sendbuf[11] = temp & 0xff;
+			sendbuf[12] = (hum >> 8) & 0xff;
+			sendbuf[13] = hum & 0xff;
+		}
+		else
+		{
+			sendbuf[10] = (klux >> 8) & 0xff;
+			sendbuf[11] = klux & 0xff;
+			sendbuf[12] = 0x00;
+			sendbuf[13] = 0x00;
+		}
+		sendbuf[14] = (storage_idx >> 8) & 0xff;
+		sendbuf[15] = storage_idx & 0xff;
+	}
+	reback_order_Status(sendbuf , 16);
+	channel_1.storage_read_idx++;
+	if(channel_1.storage_read_idx >= 9)
+	{
+		channel_1.storage_read_idx = 0;
+		yk_tm.storage_read_sta = false;
+	}
+	fs_close(&chn1_file);
+}
+void readStorage_chn2Data_BleSend()
+{
+	uint8_t sendbuf[16] = {0xdd,0xcc};
+	uint8_t line[39];
+	int record_size = 39; 
+	int storage_idx,year,hum,klux;	
+	int temp;
+	int channel_type,month,day,hour,min;
+	fs_file_t_init(&chn2_file);
+	int rc = fs_open(&chn2_file, "/NAND:/ch2.csv", FS_O_READ);
+	if (rc < 0) {
+		printk("无法打开文件: %d\n", rc);
+	}
+ 	int header_size = sizeof(ch2_title) + sizeof(fifle_header);
+  int position = header_size + (channel_2.storage_read_idx * record_size);
+	rc = fs_seek(&chn2_file, position, FS_SEEK_SET);
+	if (rc < 0) {
+		printk("定位文件失败: %d\n", rc);
+		fs_close(&chn2_file);
+	}
+	// 开始读数据
+	fs_read(&chn2_file, line, record_size);	
+	// 字符串解析
+	int parsed = sscanf(line,  "%04d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
+											&storage_idx,
+											&channel_type,
+											&year, &month, &day, &hour, &min,
+											&temp,
+											&hum,
+											&klux);
+	printk("parsed is %d:\n\r" ,parsed );
+	if(parsed == 10)
+	{
+		sendbuf[0] = 0xdd;
+		sendbuf[1] = 0xcc;
+		sendbuf[2] = (year >> 8) & 0xff;
+		sendbuf[3] = year & 0xff;
+		sendbuf[4] = month;
+		sendbuf[5] = day;
+		sendbuf[6] = hour;
+		sendbuf[7] = min;
+		sendbuf[8] = 2;		/* 通道0👌 */
+		sendbuf[9] = channel_type;
+		if(channel_type == sht40)
+		{
+			sendbuf[10] = (temp >> 8) & 0xff;
+			sendbuf[11] = temp & 0xff;
+			sendbuf[12] = (hum >> 8) & 0xff;
+			sendbuf[13] = hum & 0xff;
+		}
+		else
+		{
+			sendbuf[10] = (klux >> 8) & 0xff;
+			sendbuf[11] = klux & 0xff;
+			sendbuf[12] = 0x00;
+			sendbuf[13] = 0x00;
+		}
+		sendbuf[14] = (storage_idx >> 8) & 0xff;
+		sendbuf[15] = storage_idx & 0xff;
+	}
+	reback_order_Status(sendbuf , 16);
+	channel_2.storage_read_idx++;
+	if(channel_2.storage_read_idx >= 9)
+	{
+		channel_2.storage_read_idx = 0;
+		yk_tm.storage_read_sta = false;
+	}
+	fs_close(&chn2_file);
+}
 
 
 

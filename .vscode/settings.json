@@ -17,6 +17,20 @@
         "kernel.h": "c",
         "user_storage.h": "c",
         "flash.h": "c",
-        "lcd.h": "c"
+        "lcd.h": "c",
+        "random": "c",
+        "limits": "c",
+        "user_workqueue.h": "c",
+        "uuid.h": "c",
+        "addr.h": "c",
+        "conn.h": "c",
+        "bat_ssadc.h": "c",
+        "ble_nus_order.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "button.h": "c",
+        "fs.h": "c",
+        "flash_map.h": "c"
     }
 }

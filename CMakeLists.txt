@@ -14,4 +14,7 @@ target_sources(app PRIVATE
  src/user_rtc.c
  src/user_storage.c
  src/lcd.c
+ src/bat_ssadc.c
+ src/ble_nus_order.c
+ src/button.c
  )

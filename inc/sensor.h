@@ -49,15 +49,14 @@
 #define MAX_LOWER_THRESHOLD           0x06
 #define MAX_THRESHOLD_TIMER           0x07
 
-typedef enum
-{
-  none      = 0x00,
-  sht40     = 0x01,
-  bh1750    = 0x02,
-  max44009  = 0x03
-}sensor_TypeDef;
 
 
+/**
+ * @brief 检查显示的通道，是否有超过当前阈值，需要报警的
+ * 
+ * @param chn 当前展示的通道
+ */
+void judege_sensor_warming(yongker_tm_channelDef *chn);
 /**
  * @brief 检测通道是否存在传感器
  * 
@@ -66,16 +65,17 @@ typedef enum
  */
 uint8_t CheckChn_Sensor_is(uint8_t chn);
 /**
- * @brief 根据寄存器类型读取对应的数据，然后通过指针传递外部数组
+ * @brief 对应通道读取数据，将数据有效传输
  * 
- * @param databuf 数据缓存
- * @param type 传感器类型
+ * @param chn 对应通道
  */
-void ReadSensor_Data(uint8_t *databuf , sensor_TypeDef type);
-
-
-
-
+void read_sensor_data(yongker_tm_channelDef *chn);
+/**
+ * @brief 对应通道检测是否超过报警阈值，同时更新显示屏幕
+ * 
+ * @param chn 对应通道
+ */
+void check_temp_hum_warming(yongker_tm_channelDef *chn);
 
 
 

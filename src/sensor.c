@@ -31,7 +31,7 @@ static const struct i2c_dt_spec dev_pca9546  = I2C_DT_SPEC_GET(PCA9546_NODE);
 /**
  * @brief SHT40 T Accuracy = 0.2℃ all command have six respond
  */
-static uint8_t sht40_data_buf[6];
+static uint8_t sensor_ReadBuf[20];
 
 /** @note 3个传感器和通道切换芯片的读写函数-------------------------------------- */
 static void pca9546_channel_select(uint8_t chn){
@@ -61,7 +61,7 @@ static int sht40_write_Byte(uint8_t cmd){
   ret = i2c_write_dt(&dev_sht40, &cmd, 1);
   if(ret != 0)
   {
-    LOG_WRN("IIC write SHT40 err reson is: 0x%c\n", ret);
+    //LOG_WRN("IIC write SHT40 err reson is: 0x%c\n", ret);
   }
   return ret;
 }
@@ -70,7 +70,7 @@ static int sht40_ReadNumBytes(uint8_t *DataBuf, uint8_t number){
 	ret = i2c_read_dt(&dev_sht40, DataBuf, number);
   if(ret != 0)
   {
-    LOG_WRN("IIC write SHT40 numBytes err reson is: 0x%c\n", ret);
+    //LOG_WRN("IIC write SHT40 numBytes err reson is: 0x%c\n", ret);
   }  
 	return ret;
 }
@@ -79,14 +79,15 @@ static int  bh1750_write_Byte(uint8_t cmd){
   ret = i2c_write_dt(&dev_bh1750, &cmd, 1);
   if(ret != 0)
   {
-    LOG_WRN("IIC write bh1750 err reson is: 0x%c\n", ret);
+    //LOG_WRN("IIC write bh1750 err reson is: 0x%c\n", ret);
   }
   return ret;
-}static int bh1750_WriteRead_NumBytes(uint8_t cmd, uint8_t *DataBuf, uint8_t number){
+}
+static int bh1750_WriteRead_NumBytes(uint8_t *DataBuf, uint8_t number){
   int ret;
-  ret = i2c_write_read_dt(&dev_bh1750,&cmd,1,DataBuf,number); 
+  ret = i2c_read_dt(&dev_bh1750, DataBuf, number);
   {
-    LOG_WRN("IIC write bh1750 err reson is: 0x%c\n", ret);
+    //LOG_WRN("IIC write bh1750 err reson is: 0x%c\n", ret);
   }
   return ret;
 }
@@ -95,32 +96,88 @@ static int max44009_write_Bytes(uint8_t reg){
   ret = i2c_write_dt(&dev_max44009, &reg, 1);
   if(ret != 0)
   {
-    LOG_WRN("IIC write MAX44009_NODE err reson is: 0x%c\n", ret);
+    //LOG_WRN("IIC write MAX44009_NODE err reson is: 0x%c\n", ret);
   }
   return ret;
 }
 /** @note 3个传感器和通道切换芯片的读写函数-------------------------------------- */
+void judege_sensor_warming(yongker_tm_channelDef *chn)
+{
+  bool warm_temp = false;
+  bool warm_hum = false;
+  /** 没传感器就不报警 */
+  if(chn->channel_type == nosensor)
+    yk_tm.warm_icon_sta = false;
+  if(chn->channel_type == sht40)
+  {
+    if((chn->humidity >= chn->h_hum)||(chn->humidity <= chn->l_hum))
+    { warm_hum = true; }  //湿度超阈值范围
+    if((chn->temp_celsius >= chn->h_temp)||(chn->temp_celsius <= chn->l_temp))
+    { warm_temp = true; } //温度超阈值范围
+    if((warm_temp)||(warm_hum))
+      yk_tm.warm_icon_sta = true; //只要一个超出范围，直接报警
+    else
+      yk_tm.warm_icon_sta = false;
+  }
+  if(chn->channel_type == bh1750)
+  {
+    if((chn->klux >= chn->h_lux)||(chn->klux <= chn->l_lux))
+      { yk_tm.warm_icon_sta = true;}
+    else
+      { yk_tm.warm_icon_sta = false;} 
+  }
+}
+void read_sensor_data(yongker_tm_channelDef *chn)
+{
+  uint32_t temp_raw, humid_raw, plux;
+  if(chn->channel_type == nosensor)
+  {
+    //printk("without sensor, cannot read data\n\r");
+  }
+  if(chn->channel_type == sht40)
+  {
+    /*jb芯片，最少要等10ms转换*/
+    k_msleep(10);
+    sht40_ReadNumBytes(sensor_ReadBuf, 6);
+    temp_raw = ((uint32_t)sensor_ReadBuf[0] << 8) | sensor_ReadBuf[1];
+    humid_raw = ((uint32_t)sensor_ReadBuf[3] << 8) | sensor_ReadBuf[4];
+    chn->temp_celsius    = (-45.0 + 175.0 * temp_raw / 65535.0)*10;
+    chn->temp_fahrenheit = (-49.0 + 315.0 * temp_raw / 65535.0)*10;
+    chn->humidity        = (-6.0 + 125.0 * humid_raw / 65535.0)*10;
+    chn->klux = 0;
+  }
+  if(chn->channel_type == bh1750)
+  {
+    bh1750_write_Byte(BH1750_SINGLE_L_MODE);
+    k_msleep(24);
+    bh1750_WriteRead_NumBytes(sensor_ReadBuf, 2);
+    plux = (sensor_ReadBuf[0]<<8 | sensor_ReadBuf[1]);
+    chn->temp_celsius    = 0;
+    chn->temp_fahrenheit = 0;
+    chn->humidity        = 0;
+    chn->klux = plux * 10 / 1.2;
+  }
+}
 uint8_t CheckChn_Sensor_is(uint8_t chn){
   uint8_t sensor_is;
   int ret_code;
   pca9546_channel_select(chn);
-  k_msleep(1);
   ret_code = sht40_write_Byte(SHT40_HIGH_REPEAT);
   if(ret_code != 0)
   {
-    LOG_ERR("channel %d is not sht40\n", chn);
-    sensor_is = none;
+    //LOG_ERR("channel %d is not sht40\n", chn);
+    sensor_is = nosensor;
   }
   else
   {
     sensor_is = sht40;
     return sensor_is;
   }
-  ret_code = bh1750_write_Byte(BH1750_PDOWN);
+  ret_code = bh1750_write_Byte(BH1750_PON);
   if(ret_code != 0)
   {
-    LOG_ERR("channel %d is not bh1750\n", chn);
-    sensor_is = none;
+    //LOG_ERR("channel %d is not bh1750\n", chn);
+    sensor_is = nosensor;
   }
   else
   {
@@ -130,29 +187,27 @@ uint8_t CheckChn_Sensor_is(uint8_t chn){
   ret_code = max44009_write_Bytes(MAX_INIT_ENABLE);
   if(ret_code != 0)
   {
-    LOG_ERR("channel %d is not max44009\n", chn);
-    sensor_is = none;
+    //LOG_ERR("channel %d is not max44009\n", chn);
+    sensor_is = nosensor;
   }
   else
   {
     sensor_is = max44009;
     return sensor_is;
   }
-
-
-
-
-
-
   return sensor_is;
 }
-void ReadSensor_Data(uint8_t *databuf , sensor_TypeDef type){
-  if(type == sht40)
-  {
-    k_msleep(10);
-    sht40_ReadNumBytes(sht40_data_buf,6);
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
 
 
 

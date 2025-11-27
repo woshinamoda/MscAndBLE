@@ -1,0 +1,55 @@
+#ifndef _BUTTON_H_
+#define _BUTTON_H_
+
+#include "main.h"
+
+/**
+ * @brief 按键中断初始化
+ */
+void button_gpiote_init();
+/**
+ * @brief 定时器中处理按键长短按函数
+ * 
+ */
+void button_EvenTimer_handle();
+/**
+ * @brief 按键短按事件执行功能
+ */
+void button_short_cb();
+/**
+ * @brief 按键长按事件执行功能
+ */
+void button_long_cb();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#endif
+
+
+
+
+
+
+
+
+

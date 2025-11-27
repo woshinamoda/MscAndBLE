@@ -2,9 +2,10 @@
 #define _USER_RTC_H_
 
 #include "main.h"
+#include "lcd.h"
+
 /* 12个月对应天数 */
 static const uint8_t days_is_month[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
 /**
  * @brief 设备的时间戳
  * 
@@ -17,6 +18,9 @@ typedef struct{
   uint8_t   min;
   uint8_t   sec;
 }timeinfo_TypeDef;
+
+ extern timeinfo_TypeDef	timeInfo_stamp;
+
 /**
  * @brief 打印当前时间结构体
  */

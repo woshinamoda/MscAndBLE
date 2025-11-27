@@ -48,6 +48,21 @@
 #define   SET_LCD_SCK(x)              GPIO_SET(LCD_WR, x)
 #define   SET_LCD_DATA(x)             GPIO_SET(LCD_DATA, x)
 
+#define   SET_BIT(byte, n)            ((byte) |= (1<<(n)))
+#define   CLEAR_BIT(byte, n)          ((byte) &= ~(1 << (n)))
+#define   SET_BYTE(byte, mask)        ((byte) |= (mask))
+#define   CLEAR_BYTE(byte, mask)      ((byte) &= ~(mask))
+
+#define   COM1                  0x03
+#define   COM2                  0x02
+#define   COM3                  0x01
+#define   COM4                  0x00
+
+/**
+ * @brief 数码管高/低位置，对应l：低数字，对应h：高数字
+ */
+static const uint8_t num_wilcard_h[10] = {0x0B, 0x00, 0x07, 0x05, 0x0C, 0x0D, 0x0F, 0x00, 0x0F, 0x0D};
+static const uint8_t num_wilcard_l[10] = {0x0E, 0x06, 0x0C, 0x0E, 0x06, 0x0A, 0x0A, 0x0E, 0x0E, 0x0E};
 
 
 typedef struct 
@@ -57,22 +72,59 @@ typedef struct
   bool ext_sta;
   bool rtc_sta;
   bool charging_sta;
+  bool storage_sta;
+  bool channel_dis_sta;
+  bool channel_data_sta;
+  bool channel_warming_sta;
 }lcd_refresh_TypeDef;
-
-
-
+extern lcd_refresh_TypeDef  refresh_flag;
+/**
+ * @brief 显示传感器数据，其中包含好了传感器类型，与是否存在传感器的绘图逻辑
+ * 
+ * @param chn 0 - 2
+ */
+void display_sensor_data(uint8_t chn);
+/**
+ * @brief 显示蓝牙状态和强度
+ */
+void display_ble_sta();
+/**
+ * @brief 显示存储的状态
+ */
+void display_storage_sta();
+/**
+ * @brief 更新RTC时间
+ * 
+ * @param colSta 冒号状态
+ */
+void display_rtc_number(bool colSta);
+/**
+ * @brief 显示充电图标
+ */
+void display_charge_icon();
+/**
+ * @brief 是否显示报警图标
+ * 
+ * @param warm_sta t/f
+ */
+void display_waring_icon(bool warm_sta);
+/**
+ * @brief 显示电池等级
+ * 
+ * @param batLev 0 - 4
+ */
+void display_bat_level(uint8_t batLev);
+/**
+ * @brief 切换通道显示图标
+ * 
+ * @param chn 0 - 2
+ */
+void display_channel_icon(uint8_t chn);
 /**
  * @brief 初始化开始显示
  * 
  */
 void display_lcd_init();
-/**
- * @brief ht1621对应地址，点亮com
- * 
- * @param addr 
- * @param com 
- */
-void writeData_ht1621(uint8_t addr, uint8_t com);
 /**
  * @brief 断码显示器初始化
  */
