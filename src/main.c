@@ -74,6 +74,7 @@ yongker_tm_channelDef   channel_0={
 	.storage_idx = 0,
 	.storage_over = false,
 	.storage_read_idx = 0,
+	.storage_read_ok = false,
 };
 yongker_tm_channelDef   channel_1={
 	.channel_type = nosensor,
@@ -86,6 +87,7 @@ yongker_tm_channelDef   channel_1={
 	.storage_idx = 0,
 	.storage_over = false,
 	.storage_read_idx = 0,	
+	.storage_read_ok = false,	
 };
 yongker_tm_channelDef   channel_2={
 	.channel_type = nosensor,
@@ -98,34 +100,10 @@ yongker_tm_channelDef   channel_2={
 	.storage_idx = 0,
 	.storage_over = false,
 	.storage_read_idx = 0,	
+	.storage_read_ok = false,	
 };
 
 /* 更新连接参数部分代码* start********************************************************************/
-static void update_phy(struct bt_conn *conn)																														
-{
-	int err;
-	const struct bt_conn_le_phy_param preferred_phy = {	//发送和接受的调制速率可以单独设置
-		.options = BT_CONN_LE_PHY_OPT_NONE,
-		.pref_rx_phy = BT_GAP_LE_PHY_2M,
-		.pref_tx_phy = BT_GAP_LE_PHY_2M,
-	};
-	err = bt_conn_le_phy_update(conn, &preferred_phy);
-	if (err) {
-		LOG_ERR("bt_conn_le_phy_update() returned %d", err);
-	}
-};
-static void update_data_length(struct bt_conn *conn)																								
-{
-	int err;
-	struct bt_conn_le_data_len_param my_data_len = {
-		.tx_max_len = BT_GAP_DATA_LEN_MAX,
-		.tx_max_time = BT_GAP_DATA_TIME_MAX,
-	};
-	err = bt_conn_le_data_len_update(my_conn, &my_data_len);
-	if (err) {
-		LOG_ERR("data_len_update failed (err %d)", err);
-	}
-};
 static struct bt_gatt_exchange_params exchange_params;
 static void exchange_func(struct bt_conn *conn, uint8_t att_err,  struct bt_gatt_exchange_params *params)
 {
@@ -136,6 +114,31 @@ static void exchange_func(struct bt_conn *conn, uint8_t att_err,  struct bt_gatt
 		LOG_INF("New MTU: %d bytes", payload_mtu);
 	}
 }
+static void update_phy(struct bt_conn *conn)																														
+{
+	int err;
+	const struct bt_conn_le_phy_param preferred_phy = {
+			.options = BT_CONN_LE_PHY_OPT_NONE,
+			.pref_rx_phy = BT_GAP_LE_PHY_2M,
+			.pref_tx_phy = BT_GAP_LE_PHY_2M,
+	};
+	err = bt_conn_le_phy_update(conn, &preferred_phy);
+	if (err) {
+			LOG_ERR("bt_conn_le_phy_update() returned %d", err);
+	}
+};
+static void update_data_length(struct bt_conn *conn)																								
+{
+	int err;
+	struct bt_conn_le_data_len_param my_data_len = {
+			.tx_max_len = BT_GAP_DATA_LEN_MAX,
+			.tx_max_time = BT_GAP_DATA_TIME_MAX,
+	};
+	err = bt_conn_le_data_len_update(my_conn, &my_data_len);
+	if (err) {
+			LOG_ERR("data_len_update failed (err %d)", err);
+	}
+};
 static void update_mtu(struct bt_conn *conn)																														
 {
 	int err;
@@ -144,15 +147,6 @@ static void update_mtu(struct bt_conn *conn)
 	if (err) {
 		LOG_ERR("bt_gatt_exchange_mtu failed (err %d)", err);
 	}
-}
-static void update_led_param(struct bt_conn *conn)																											
-{
-	struct bt_le_conn_param param;
-	param.interval_max = 800;
-	param.interval_min = 800;
-	param.latency = 0;
-	param.timeout = 400;
-	bt_conn_le_param_update(conn, &param);
 }
 void on_le_param_updated(struct bt_conn *conn, uint16_t interval, uint16_t latency,	 uint16_t timeout)	
 {
@@ -202,9 +196,9 @@ static void bt_get_device_address(void)
 static struct bt_le_adv_param *adv_param = BT_LE_ADV_PARAM(
 	// 静态修改广播
 	(BT_LE_ADV_OPT_CONNECTABLE |
-		BT_LE_ADV_OPT_USE_IDENTITY),
-	ADC_INTERVAL_MIN,
-	ADC_INTERVAL_MAX,
+	BT_LE_ADV_OPT_USE_IDENTITY),
+	800,			//5000ms x 0.625
+	800,		  //5000ms x 0.625
 	NULL);
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)), // 可发现，并且不支持经典蓝牙
@@ -232,8 +226,10 @@ void on_connected(struct bt_conn *conn, uint8_t err)
 	yk_tm.bt_sta = true;
 	yk_tm.rssi = 4;	
 	refresh_flag.ble_sta = true;	
+	k_msleep(100);
+	update_phy(my_conn);
+	update_data_length(my_conn);
 	update_mtu(my_conn);
-
 }
 void on_disconnected(struct bt_conn *conn, uint8_t reason)
 {
@@ -253,6 +249,9 @@ struct bt_conn_cb connection_callbacks = {
 		.connected = on_connected,
 		.disconnected = on_disconnected,
 		.recycled = on_recycled,
+    .le_param_updated   = on_le_param_updated,
+    .le_phy_updated     = on_le_phy_updated,
+    .le_data_len_updated    = on_le_data_len_updated,		
 };
 /* 蓝牙广播设置相关部分代码* end--*****************************************************************/
 
@@ -338,6 +337,7 @@ void yk_tm_order_cb()
 		che_get_storage_data_order(order_buffer, length);
 		che_systemoff_order(order_buffer, length);
 		che_DevStatus_order(order_buffer, length);
+		che_clearStorage(order_buffer, length);
 	}
 }
 static void bt_send_enabled_cb(enum bt_nus_send_status status) {
@@ -468,9 +468,7 @@ static int settings_runtime_load(void)
 /* 用户逻辑功能*----------- start****************************************************************/
 
 /* 用户逻辑功能*----------- end******************************************************************/
-
 uint8_t senser_is_num = 0;
-
 int main(void)
 {
 	int err;
@@ -581,16 +579,16 @@ static void storage_thread()
 {
 	while(1)
 	{
-		k_msleep(2);
+		k_usleep(100);
 		if(yk_tm.storage_read_sta == true)
 		{
-			readStorage_chn0Data_BleSend();
+			readStorage_SendData();
 		}		
 		if((storage_flag == true)&&(yk_tm.storage_sta == true))
 		{
 			storage_flag = false;
 			storageCutIn_chn0_data();
-		  storageCutIn_chn1_data();
+			storageCutIn_chn1_data();
 			storageCutIn_chn2_data();
 		}
 	}

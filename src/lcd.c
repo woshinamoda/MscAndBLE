@@ -27,6 +27,8 @@ static void display_downNumber(bool is_none, uint16_t num, uint8_t pot);
 /*所有界面分割模块绘图，互不影响*/
 void display_ble_sta()
 {
+  uint8_t s10_mask;
+  s10_mask = seg_comBuf[27] &  0x08;
   if(yk_tm.bt_sta)
   {
     seg_comBuf[28] &=  0x07;    //关闭s3的x
@@ -60,6 +62,7 @@ void display_ble_sta()
     seg_comBuf[27]  = 0x02;  
     seg_comBuf[28]  = 0x08;  
   }
+  seg_comBuf[27] = (seg_comBuf[27]|s10_mask);
   writeData_ht1621(27-1, seg_comBuf[27]);
   writeData_ht1621(28-1, seg_comBuf[28]);
 }
@@ -81,7 +84,7 @@ void display_storage_sta()
 void display_rtc_number(bool colSta)
 {
   uint8_t hour_one, hour_ten, min_one, min_ten;
-  uint8_t s11_mask, s13_mask;
+  uint8_t s11_mask, s12_mask, s13_mask;
   hour_ten = timeInfo_stamp.hour / 10 % 10;
   hour_one = timeInfo_stamp.hour / 1 % 10;
   min_ten = timeInfo_stamp.min / 10 % 10;
@@ -89,6 +92,7 @@ void display_rtc_number(bool colSta)
 
   //数码管10 + s11保持
   s11_mask = seg_comBuf[25] &  0x01;
+  s12_mask = seg_comBuf[26] &  0x08;
   if(hour_ten == 0)
   {
     seg_comBuf[25] = (0x00 | s11_mask);
@@ -114,6 +118,7 @@ void display_rtc_number(bool colSta)
   s13_mask = seg_comBuf[19] &  0x01;
   seg_comBuf[19] = (num_wilcard_l[min_one] | s13_mask);
   seg_comBuf[20] = num_wilcard_h[min_one];
+  seg_comBuf[26] = (seg_comBuf[26] | s12_mask);
 
   writeData_ht1621(19-1, seg_comBuf[19]); 
   writeData_ht1621(20-1, seg_comBuf[20]);  

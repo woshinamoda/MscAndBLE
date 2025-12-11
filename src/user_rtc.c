@@ -24,7 +24,7 @@ timeinfo_TypeDef	timeInfo_stamp ={			//阳历(公历)形式时间戳
 	.min   = 59,
 	.sec   = 00,
 };
-static uint8_t interval_compare = 0;
+ uint8_t interval_compare = 0;
 
 /**
  * @brief 判断是否闰年
@@ -53,8 +53,9 @@ static uint8_t month_day_is(uint16_t year, uint8_t month)
 static void secAll_to_timeInfo(timeinfo_TypeDef *tm)
 {
 	tm->sec++;
-	if(tm->sec % 3 == 0){
+	if(tm->sec % 2 == 0){
 		interval_compare++;	//测试用的，每过3sec发一次，存一次数据
+		tm->min++;
 		send_yktm_Data(interval_compare);
 	}	
 	if(tm->sec >= 60)

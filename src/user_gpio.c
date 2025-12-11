@@ -36,7 +36,6 @@ void yonker_tm_gpio_init()
 {
   pca9546_gpio_init();
   htl621_gpio_init();
-
   
 
 }

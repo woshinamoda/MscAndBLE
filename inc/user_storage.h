@@ -20,8 +20,8 @@ void storageCutIn_chn2_data();
  * @brief 删除所有通道的csv文件，重置存储序号和旗标
  */
 void storage_clear_allFile();
-/**对应通道文件，读取其数据 */
-void readStorage_chn0Data_BleSend();
-void readStorage_chn1Data_BleSend();
-void readStorage_chn2Data_BleSend();
+void all_storage_close();
+void all_storage_open();
+/**对应通道文件，读取其数据,并且发送 */
+void readStorage_SendData();
 #endif

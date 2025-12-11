@@ -12,6 +12,7 @@
  */
 #include "ble_nus_order.h"
 #include "user_rtc.h"
+#include "user_storage.h"
 
 uint8_t che_sync_time_order(const uint8_t *const rxbuf, uint16_t len)//同步时间
 {
@@ -130,6 +131,7 @@ uint8_t che_close_storage_order(const uint8_t *const rxbuf, uint16_t len)//关�
       /* 设置中断停止存储功能 */
       if((rxbuf[2] == 0x04)&&(rxbuf[3] == 0x45)&&(rxbuf[4] == 0x4e)&&(rxbuf[5] == 0x44))
       {
+        all_storage_close();
         yk_tm.storage_sta = false;
         refresh_flag.storage_sta = true;
         printk("stop storage fun\n\r");
@@ -149,9 +151,22 @@ uint8_t che_get_storage_data_order(const uint8_t *const rxbuf, uint16_t len)//�
       {
         if(memcmp(&rxbuf[3], "SAVEDATA", 8) == 0)
         {
-          yk_tm.storage_read_sta = true;
+          yk_tm.start_send_flag = false;    //停止实时读取功能
+          yk_tm.storage_read_sta = true;    //开启蓝牙发送内部存储数据
+          /* 
+          * 停止存储功能，不再向flash写入数据 
+          * 但是不着急开usb，等发送完存储数据后再开
+          */
+          //all_storage_close();
           yk_tm.storage_sta = false;
           refresh_flag.storage_sta = true;
+          /* 刷新各个通道发送存储数据的旗标和变量 */
+          channel_0.storage_read_idx = 0;
+          channel_0.storage_read_ok = false;
+          channel_1.storage_read_idx = 0;
+          channel_1.storage_read_ok = false;
+          channel_2.storage_read_idx = 0;
+          channel_2.storage_read_ok = false;                   
           printk("start read storage send by ble \n\r");
           //reback_order_Status("savedata", 8);  
           return 1;
@@ -203,9 +218,18 @@ uint8_t che_DevStatus_order(const uint8_t *const rxbuf, uint16_t len)//获取设
     }
   }
 }
-
-
-
+uint8_t che_clearStorage(const uint8_t *const rxbuf, uint16_t len)//清除存储指令
+{
+  if(len == 5)
+  {
+    //if(memcmp(rxbuf, order_pwdn[0], 4) == 0)
+    if((rxbuf[0]==0x43)&&(rxbuf[1]==0x4C)&&(rxbuf[2]==0x45)&&(rxbuf[3]==0x41)&&(rxbuf[4]==0x52))
+    {
+      storage_clear_allFile();      
+      reback_order_Status("clear over", 10);
+    }
+  }
+}
 
 
 

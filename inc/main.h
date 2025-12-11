@@ -90,8 +90,8 @@ typedef struct
   bool      warm_icon_sta;
   bool      bt_sta;
   uint8_t   rssi;
-  bool      storage_read_sta;   //是否开始读取数据
-  bool      storage_sta;        //是否存储
+  bool      storage_read_sta;   //是否开始读取数据（用于控制蓝牙发送）
+  bool      storage_sta;        //是否开启存储（用于图标）
   bool      charging_sta;
   uint8_t   bat_level;          //5个等级,用于电量图标显示
   uint8_t   bat_precent;        //0 - 100%，用于电池电量服务更新
@@ -115,10 +115,11 @@ typedef struct
   uint16_t          l_hum;
   uint16_t          h_lux;
   uint16_t          l_lux;
-  /* 通道对应存储了多少条数据 */
-  uint16_t          storage_idx;
-  uint16_t          storage_read_idx;
-  bool              storage_over;     //存储溢出，单通道存储超过20000条数据
+  /* 通道对应存储了多少条数据，除了idx本身固有累计，其余在收到传送读取数据后重置 */
+  uint16_t          storage_idx;        //0 - 19999条
+  uint16_t          storage_read_idx;   //已经读取的数量
+  bool              storage_over;       //存储超过20000条
+  bool              storage_read_ok;    //该通道读取完成
 }yongker_tm_channelDef;
 extern yongker_tm_channelDef   channel_0;
 extern yongker_tm_channelDef   channel_1;

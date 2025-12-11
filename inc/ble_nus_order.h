@@ -15,7 +15,7 @@ uint8_t che_get_storage_data_order(const uint8_t *const rxbuf, uint16_t len);
 uint8_t che_systemoff_order(const uint8_t *const rxbuf, uint16_t len);
 uint8_t che_DevStatus_order(const uint8_t *const rxbuf, uint16_t len);
 uint8_t che_SetAram_threshold_order(const uint8_t *const rxbuf, uint16_t len);
-
+uint8_t che_clearStorage(const uint8_t *const rxbuf, uint16_t len);
 
 
 
