@@ -42,38 +42,42 @@
 // define user gpio is
 #define BAT_ADC                NRF_GPIO_PIN_MAP(0,2)
 #define VCHECK                 NRF_GPIO_PIN_MAP(0,31)
-#define CHG                    NRF_GPIO_PIN_MAP(0,29)
-#define BUZZ                   NRF_GPIO_PIN_MAP(0,13)
-#define FLASH_CS               NRF_GPIO_PIN_MAP(0,4)
-#define FLASH_SCK              NRF_GPIO_PIN_MAP(0,5)
-#define FLASH_MOSI             NRF_GPIO_PIN_MAP(0,6)
-#define FLASH_MISO             NRF_GPIO_PIN_MAP(0,26)
-#define LCD_CS                 NRF_GPIO_PIN_MAP(0,14)
+#define CHG                    NRF_GPIO_PIN_MAP(0,27)
+#define BUZZ                   NRF_GPIO_PIN_MAP(0,19)
+#define FLASH_CS               NRF_GPIO_PIN_MAP(0,6)
+#define FLASH_SCK              NRF_GPIO_PIN_MAP(0,8)
+#define FLASH_MOSI             NRF_GPIO_PIN_MAP(0,5)
+#define FLASH_MISO             NRF_GPIO_PIN_MAP(0,4)
+#define LCD_CS                 NRF_GPIO_PIN_MAP(0,13)
 #define LCD_WR                 NRF_GPIO_PIN_MAP(0,15)
-#define LCD_DATA               NRF_GPIO_PIN_MAP(0,16)
-#define PCA_SDA                NRF_GPIO_PIN_MAP(0,12)
-#define PCA_SCL                NRF_GPIO_PIN_MAP(0,11)
-#define PCA_RESET              NRF_GPIO_PIN_MAP(0,7)
-#define PCA_A0                 NRF_GPIO_PIN_MAP(0,8)
-#define PCA_A1                 NRF_GPIO_PIN_MAP(1,8)
-#define PCA_A2                 NRF_GPIO_PIN_MAP(1,9)
-#define IRQ                    NRF_GPIO_PIN_MAP(1,6)
-#define COEX_GRANT             NRF_GPIO_PIN_MAP(1,5)
-#define COEX_REQ               NRF_GPIO_PIN_MAP(1,2)
-#define COEX_STATUS            NRF_GPIO_PIN_MAP(1,1)
-#define QSPI_D3                NRF_GPIO_PIN_MAP(0,23)
+#define LCD_DATA               NRF_GPIO_PIN_MAP(0,17)
+#define PCA_SDA                NRF_GPIO_PIN_MAP(0,11)
+#define PCA_SCL                NRF_GPIO_PIN_MAP(0,12)
+#define PCA_RESET              NRF_GPIO_PIN_MAP(1,9)
+#define CH1_EN                 NRF_GPIO_PIN_MAP(1,8)
+#define CH2_EN                 NRF_GPIO_PIN_MAP(0,7)
+// #define PCA_A0                 NRF_GPIO_PIN_MAP(0,8)
+// #define PCA_A1                 NRF_GPIO_PIN_MAP(1,8)
+// #define PCA_A2                 NRF_GPIO_PIN_MAP(1,9)
+#define IRQ                    NRF_GPIO_PIN_MAP(0,22)
+// #define COEX_GRANT             NRF_GPIO_PIN_MAP(1,5)
+// #define COEX_REQ               NRF_GPIO_PIN_MAP(1,2)
+// #define COEX_STATUS            NRF_GPIO_PIN_MAP(1,1)
+#define QSPI_D3                NRF_GPIO_PIN_MAP(0,20)
 #define QSPI_D2                NRF_GPIO_PIN_MAP(0,21)
-#define QSPI_D1                NRF_GPIO_PIN_MAP(0,20)
-#define QSPI_D0                NRF_GPIO_PIN_MAP(0,22)
-#define QSPI_CS                NRF_GPIO_PIN_MAP(0,24)
-#define QSPI_CLK               NRF_GPIO_PIN_MAP(1,0)
-#define MODULE_EN              NRF_GPIO_PIN_MAP(1,7)
-#define TXD_4G                 NRF_GPIO_PIN_MAP(1,4)
-#define RXD_4G                 NRF_GPIO_PIN_MAP(1,3)
-#define DTR_4G                 NRF_GPIO_PIN_MAP(0,25)
-#define IS_WIFI                NRF_GPIO_PIN_MAP(0,19)
-#define IS_FLASH               NRF_GPIO_PIN_MAP(0,17)
-#define BUTTON                 NRF_GPIO_PIN_MAP(1,15)
+#define QSPI_D1                NRF_GPIO_PIN_MAP(0,24)
+#define QSPI_D0                NRF_GPIO_PIN_MAP(1,0)
+#define QSPI_CS                NRF_GPIO_PIN_MAP(0,23)
+#define QSPI_CLK               NRF_GPIO_PIN_MAP(0,25)
+#define MODULE_EN              NRF_GPIO_PIN_MAP(1,4)
+#define TXD_4G                 NRF_GPIO_PIN_MAP(1,7)
+#define RXD_4G                 NRF_GPIO_PIN_MAP(1,6)
+#define DTR_4G                 NRF_GPIO_PIN_MAP(1,5)
+// #define IS_WIFI                NRF_GPIO_PIN_MAP(0,19)
+// #define IS_FLASH               NRF_GPIO_PIN_MAP(0,17)
+#define BUTTON                 NRF_GPIO_PIN_MAP(0,29)
+#define BQ_CE                  NRF_GPIO_PIN_MAP(1,15)
+
 
 #define GPIO_SET(pin,state)   ((state) ? nrf_gpio_pin_set(pin) : nrf_gpio_pin_clear(pin))           
 
@@ -116,10 +120,15 @@ typedef struct
   uint16_t          h_lux;
   uint16_t          l_lux;
   /* 通道对应存储了多少条数据，除了idx本身固有累计，其余在收到传送读取数据后重置 */
+  bool              storage_over;       //存储超过20000条 
   uint16_t          storage_idx;        //0 - 19999条
+  /* 读取(qspi flash数据)时专用 */
+  bool              storage_read_ok;    //该通道读取完成  
   uint16_t          storage_read_idx;   //已经读取的数量
-  bool              storage_over;       //存储超过20000条
-  bool              storage_read_ok;    //该通道读取完成
+  /* ble发送(读取数据)专用 */
+  uint8_t           sending_cnt;        //累计读15次，压入一包发送。用于计数发送累计次数
+  bool              sending_sta;        //true:正在发送数据。 false：蓝牙数据还在FIFO中，或者fifo满了，还在堆积，没有发送，正在等待发送
+  bool              sending_retry;      //冲发送旗标，默认false：本次/上一包数据发送成功   true：上一包发送失败，需要重发送
 }yongker_tm_channelDef;
 extern yongker_tm_channelDef   channel_0;
 extern yongker_tm_channelDef   channel_1;
@@ -133,6 +142,11 @@ typedef struct
   bool long_flag;
   uint16_t press_cnt;
 }Button_InitTypeDef;
+typedef struct 
+{
+  bool toogle_flag;
+  uint8_t active_cnt;
+}Vcheck_InitTypeDef;
 /**
  * @brief 固定2.5秒读取一次rssi，并重置绘制信号强度变量
  * @note 只在蓝牙连接时执行

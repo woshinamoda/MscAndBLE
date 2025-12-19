@@ -71,38 +71,75 @@ static uint8_t  batBuf_cnt=0;
 void bat_Systime_handle()
 {
   nrfx_err_t err;
-  batRead_cnt++;
-  if(batRead_cnt >= BAT_LEV_PERIOD)
+  /* 充电状态下2min测一次电量 */
+  if(yk_tm.charging_sta == true)
   {
-    batRead_cnt = 0;
-    //set buffer
-    err = nrfx_saadc_buffer_set(&sample, 1);
-    if (err != NRFX_SUCCESS) {
-        printk("Timer: nrfx_saadc_buffer_set error: %08x\n", err);
-        return;
-    }
-    //处罚单次采样
-    err = nrfx_saadc_mode_trigger();
-		if (err != NRFX_SUCCESS) {
-			printk("nrfx_saadc_mode_trigger error: %08x", err);
-			return;
-    }
-    batVolBuffer[batBuf_cnt] = sample;
-    batBuf_cnt++;
-    if(batBuf_cnt == 10)
+    batRead_cnt++;
+    if(batRead_cnt == 500)  //5sec时停止充电
     {
-      batBuf_cnt = 0;
-      uint16_t sub, avr;
-      for(uint8_t i=0; i<10; i++)
-      {
-        sub = sub + batVolBuffer[i];
+      nrf_gpio_pin_set(BQ_CE); 
+    }
+    if(batRead_cnt == 1000) //10sec时读取电量，恢复充电
+    {
+      err = nrfx_saadc_buffer_set(&sample, 1);
+      if (err != NRFX_SUCCESS) {
+          printk("Timer: nrfx_saadc_buffer_set error: %08x\n", err);
+          return;
       }
-      avr = sub/10;
-      bat_vol = ((600 * 6) * avr) / (1 << 12);
+      //处罚单次采样
+      err = nrfx_saadc_mode_trigger();
+      if (err != NRFX_SUCCESS) {
+        printk("nrfx_saadc_mode_trigger error: %08x", err);
+        return;
+      }
+      bat_vol = ((600 * 6) * sample) / (1 << 12);
       BatAdc_tranTo_BatLev(bat_vol);
       refresh_flag.adc_sta = true;
       bt_bas_set_battery_level(yk_tm.bat_precent);
+      nrf_gpio_pin_clear(BQ_CE);  
     }
+    if(batRead_cnt >= 12000) //2min为间隔，测一次电量
+    {
+      batRead_cnt = 0;
+      nrf_gpio_pin_clear(BQ_CE);  
+    }
+  }
+  /* 不充电时， 5sec测一次，累计10次计算一次电量 */
+  else
+  {
+    batRead_cnt++;
+    if(batRead_cnt >= BAT_LEV_PERIOD)
+    {
+      batRead_cnt = 0;
+      //set buffer
+      err = nrfx_saadc_buffer_set(&sample, 1);
+      if (err != NRFX_SUCCESS) {
+          printk("Timer: nrfx_saadc_buffer_set error: %08x\n", err);
+          return;
+      }
+      //处罚单次采样
+      err = nrfx_saadc_mode_trigger();
+      if (err != NRFX_SUCCESS) {
+        printk("nrfx_saadc_mode_trigger error: %08x", err);
+        return;
+      }
+      batVolBuffer[batBuf_cnt] = sample;
+      batBuf_cnt++;
+      if(batBuf_cnt == 10)
+      {
+        batBuf_cnt = 0;
+        uint16_t sub, avr;
+        for(uint8_t i=0; i<10; i++)
+        {
+          sub = sub + batVolBuffer[i];
+        }
+        avr = sub/10;
+        bat_vol = ((600 * 6) * avr) / (1 << 12);
+        BatAdc_tranTo_BatLev(bat_vol);
+        refresh_flag.adc_sta = true;
+        bt_bas_set_battery_level(yk_tm.bat_precent);
+      }
+    }      
   }
 }
 static void BatAdc_tranTo_BatLev(uint16_t mvolts)

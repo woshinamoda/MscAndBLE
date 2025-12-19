@@ -29,36 +29,36 @@
 
 &qspi_default {
 	group1 {
-		psels = <NRF_PSEL(QSPI_SCK, 1, 0)>,
-						<NRF_PSEL(QSPI_IO1, 0, 20)>,
-						<NRF_PSEL(QSPI_IO2, 0, 21)>,
-						<NRF_PSEL(QSPI_IO3, 0, 23)>;
+		psels = <NRF_PSEL(QSPI_SCK, 0, 25)>,
+          <NRF_PSEL(QSPI_IO1, 0, 24)>,
+          <NRF_PSEL(QSPI_IO2, 0, 21)>,
+          <NRF_PSEL(QSPI_IO3, 0, 20)>;
 		nordic,drive-mode = <NRF_DRIVE_H0H1>;
 	};
 
 	group2 {
-		psels = <NRF_PSEL(QSPI_CSN, 0, 24)>;
+		psels = <NRF_PSEL(QSPI_CSN, 0, 23)>;
 		nordic,invert;
 		nordic,drive-mode = <NRF_DRIVE_H0H1>;
 	};
 
 	group3 {
-		psels = <NRF_PSEL(QSPI_IO0, 0, 22)>;
+		psels = <NRF_PSEL(QSPI_IO0, 1, 0)>;
 		nordic,drive-mode = <NRF_DRIVE_S0H1>;
 	};
 };
 
 &qspi_sleep {
 	group1 {
-		psels = <NRF_PSEL(QSPI_SCK, 1, 0)>,
-						<NRF_PSEL(QSPI_IO0, 0, 22)>,
-						<NRF_PSEL(QSPI_IO1, 0, 20)>,
-						<NRF_PSEL(QSPI_IO2, 0, 21)>,
-						<NRF_PSEL(QSPI_IO3, 0, 23)>;
+		psels = <NRF_PSEL(QSPI_SCK, 0, 25)>,
+          <NRF_PSEL(QSPI_IO0, 1, 0)>,
+          <NRF_PSEL(QSPI_IO1, 0, 24)>,
+          <NRF_PSEL(QSPI_IO2, 0, 21)>,
+          <NRF_PSEL(QSPI_IO3, 0, 20)>;
 	};
 
 	group2 {
-		psels = <NRF_PSEL(QSPI_CSN, 0, 24)>;
+		psels = <NRF_PSEL(QSPI_CSN, 0, 23)>;
 	};
 };
 
@@ -80,13 +80,13 @@
 
 &i2c0_default {
 	group1 {
-		psels = <NRF_PSEL(TWIM_SDA, 0, 12)>, <NRF_PSEL(TWIM_SCL, 0, 11)>;
+		psels = <NRF_PSEL(TWIM_SDA, 0, 11)>, <NRF_PSEL(TWIM_SCL, 0, 12)>;
 	};
 };
 
 &i2c0_sleep {
 	group1 {
-		psels = <NRF_PSEL(TWIM_SDA, 0, 12)>, <NRF_PSEL(TWIM_SCL, 0, 11)>;
+		psels = <NRF_PSEL(TWIM_SDA, 0, 11)>, <NRF_PSEL(TWIM_SCL, 0, 12)>;
 	};
 };
 
@@ -108,7 +108,7 @@
 };
 
 &spi1 {
-	cs-gpios = <&gpio0 4 0>;
+	cs-gpios = <&gpio0 6 0>;
 };
 
 &spi1_sleep {
@@ -121,19 +121,19 @@
 
 &spi1_default {
 	group1 {
-		psels = <NRF_PSEL(SPIM_SCK, 0, 5)>,
-				<NRF_PSEL(SPIM_MOSI, 0, 6)>,
-				<NRF_PSEL(SPIM_MISO, 0, 26)>;
+		psels = <NRF_PSEL(SPIM_SCK, 0, 8)>,
+          <NRF_PSEL(SPIM_MOSI, 0, 5)>,
+          <NRF_PSEL(SPIM_MISO, 0, 4)>;
 	};
 };
 
 &button0 {
-	gpios = <&gpio1 15 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	gpios = <&gpio0 29 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 	label = "key";
 };
 
 &button1 {
-	gpios = <&gpio0 31 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	gpios = <&gpio0 31 0>;
 	label = "vcheck";
 };
 

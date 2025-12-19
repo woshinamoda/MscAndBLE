@@ -43,8 +43,8 @@
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 struct bt_conn *my_conn = NULL;
 uint16_t sensor_read_Tcnt = 0;
-bool sensor_read_flag = false;
-bool storage_flag = false;
+bool sensor_read_flag = false;		//允许读取传感器旗标，开机的时候会卡住，随后正常运行过程中超过<更新>间隔，置(真)一次
+bool storage_flag = false;				//允许存储/发送旗标，运行过程中超过<采样>间隔，置为真。
 uint8_t send_data_buf[28] = {0x55,0xaa};
 
 yongker_TM_initTypedef yk_tm={
@@ -75,6 +75,9 @@ yongker_tm_channelDef   channel_0={
 	.storage_over = false,
 	.storage_read_idx = 0,
 	.storage_read_ok = false,
+	.sending_retry = false,
+	.sending_sta = false,
+	.sending_cnt = 0,
 };
 yongker_tm_channelDef   channel_1={
 	.channel_type = nosensor,
@@ -88,6 +91,9 @@ yongker_tm_channelDef   channel_1={
 	.storage_over = false,
 	.storage_read_idx = 0,	
 	.storage_read_ok = false,	
+	.sending_retry = false,
+	.sending_sta = false,	
+	.sending_cnt = 0,
 };
 yongker_tm_channelDef   channel_2={
 	.channel_type = nosensor,
@@ -101,6 +107,9 @@ yongker_tm_channelDef   channel_2={
 	.storage_over = false,
 	.storage_read_idx = 0,	
 	.storage_read_ok = false,	
+	.sending_retry = false,
+	.sending_sta = false,	
+	.sending_cnt = 0,
 };
 
 /* 更新连接参数部分代码* start********************************************************************/
@@ -241,6 +250,7 @@ void on_disconnected(struct bt_conn *conn, uint8_t reason)
 	yk_tm.bt_sta = false;
 	refresh_flag.ble_sta = true;
 	yk_tm.start_send_flag = false;
+	stop_readStorage_SendSta();
 }
 void on_recycled(void)
 {
@@ -320,9 +330,13 @@ uint8_t order_buffer[20];
 uint16_t length = 0;
 static void bt_receive_cb(struct bt_conn *conn, const uint8_t *const data, uint16_t len)
 {
-	length = len;
-	memcpy(&order_buffer, data, length);
-	ble_order_is = true;
+	//发送存储数据时，停止一些接受命令的操作
+	if(yk_tm.storage_read_sta == false)
+	{
+		length = len;
+		memcpy(&order_buffer, data, length);
+		ble_order_is = true;
+	}
 };
 void yk_tm_order_cb()
 {
@@ -513,6 +527,7 @@ int main(void)
 	}
 	yongker_tm_work_queue_init();
 	button_gpiote_init();
+	vcheck_gpiote_init();
 	sensor_read_flag = true;
 }
 /**
@@ -530,15 +545,18 @@ static void customer_thread()
 {
 	while(1)
 	{
-		k_msleep(10);
-		sensor_read_Tcnt++;
+		k_msleep(10);				
+		sensor_read_Tcnt++;		
 		if(sensor_read_Tcnt >= CHECK_CHN_SENSOR)
 		{
 			sensor_read_Tcnt = 0;
-			sensor_read_flag = true;
+			sensor_read_flag = true;  
 		}
 		if(sensor_read_flag)
 		{
+			nrf_gpio_pin_set(CH1_EN); 
+			nrf_gpio_pin_set(CH2_EN);  
+			k_msleep(10);			 			
 			/** @brief：读取数据，并且更新数值显示 */
 			sensor_read_flag = false;
 			channel_0.channel_type = CheckChn_Sensor_is(0);
@@ -562,11 +580,12 @@ static void customer_thread()
 				break;
 			}
 			refresh_flag.channel_warming_sta = true;
+			nrf_gpio_pin_clear(CH1_EN); 
+ 		  nrf_gpio_pin_clear(CH2_EN);     
 		}
 	}
 }
 K_THREAD_DEFINE(customer_ID, STACKSIZE, customer_thread, NULL, NULL, NULL, CUSTOMER_THREAD_PRIORITY, 0,	0);
-
 /**
  * @brief： 存储与发送存储线程
  * @priority:  2
@@ -579,7 +598,7 @@ static void storage_thread()
 {
 	while(1)
 	{
-		k_usleep(100);
+		k_usleep(50);
 		if(yk_tm.storage_read_sta == true)
 		{
 			readStorage_SendData();

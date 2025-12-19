@@ -53,17 +53,17 @@ static uint8_t month_day_is(uint16_t year, uint8_t month)
 static void secAll_to_timeInfo(timeinfo_TypeDef *tm)
 {
 	tm->sec++;
-	if(tm->sec % 2 == 0){
-		interval_compare++;	//测试用的，每过3sec发一次，存一次数据
-		tm->min++;
-		send_yktm_Data(interval_compare);
-	}	
+	// if(tm->sec % 2 == 0){
+	// 	interval_compare++;	//测试用的，每过3sec发一次，存一次数据
+	// 	tm->min++;
+	// 	send_yktm_Data(interval_compare);
+	// }	
 	if(tm->sec >= 60)
 	{
 		tm->sec = 0;
 		tm->min++;
-		// interval_compare++;	//每过1min，用于对比时间间隔的变量也自增
-		// send_yktm_Data(interval_compare);
+		interval_compare++;	//每过1min，用于对比时间间隔的变量也自增
+		send_yktm_Data(interval_compare);
 		/*min -> hour */
 		if(tm->min >= 60)
 		{

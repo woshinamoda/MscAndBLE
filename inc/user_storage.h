@@ -3,6 +3,15 @@
 
 #include "main.h"
 
+typedef enum{
+  STORAGE_SUCCESS,
+  DATA_SENDING,
+  DATA_READING,
+  DATA_NONE,
+  READ_OK,
+
+}storageReadSend_sta;
+
 static const char ch0_title[] = {"本地通道的温湿度数据\n"};
 static const char ch1_title[] = {"通道1数据\n"};
 static const char ch2_title[] = {"通道2数据\n"};
@@ -24,4 +33,6 @@ void all_storage_close();
 void all_storage_open();
 /**对应通道文件，读取其数据,并且发送 */
 void readStorage_SendData();
+/* 中断读取操作，初始化所有读取变量 */
+void stop_readStorage_SendSta();
 #endif

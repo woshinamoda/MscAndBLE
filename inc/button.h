@@ -20,9 +20,14 @@ void button_short_cb();
  * @brief 按键长按事件执行功能
  */
 void button_long_cb();
-
-
-
+/**
+ * @brief 充电引脚gpiote初始化
+ */
+void vcheck_gpiote_init();
+/**
+ * @brief vheck中断事件判断
+ */
+void vcheck_EvenTimer_handle();
 
 
 

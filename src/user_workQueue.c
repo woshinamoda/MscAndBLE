@@ -47,6 +47,10 @@ static void lcd_refresh_function()
     refresh_flag.channel_warming_sta = false;
     display_waring_icon(yk_tm.warm_icon_sta);
   }
+  if(refresh_flag.charging_sta){
+    refresh_flag.charging_sta = false;
+    display_charge_icon();
+  }
 
 }
 /**
@@ -58,6 +62,7 @@ static void systimer_function()
   bat_Systime_handle();
   yk_tm_order_cb();
   button_EvenTimer_handle();
+  vcheck_EvenTimer_handle();
 
 }
 /**************************************************************************

@@ -21,8 +21,10 @@ extern uint16_t sensor_read_Tcnt;
 #define   KEY_ERROR_TIME      5       
 #define   KEY_LONG_TIME       100
 
-Button_InitTypeDef mykey;
+Button_InitTypeDef  mykey;
+Vcheck_InitTypeDef  myVcheck;
 
+/* ============================================================================================== */
 #define KEY_NODE DT_ALIAS(sw0)
 static const struct gpio_dt_spec button_dev = GPIO_DT_SPEC_GET(KEY_NODE, gpios);
 static struct gpio_callback button_cb_data;
@@ -101,7 +103,6 @@ void button_short_cb()
   sensor_read_flag = true;
   refresh_flag.channel_dis_sta = true;  
 }
-
 void button_long_cb()
 {
   if(channel_0.temp_type_is_C)
@@ -122,11 +123,50 @@ void button_long_cb()
   refresh_flag.channel_data_sta = true;   
   LOG_INF("key press long\n");
 }
-
-
-
-
-
+/* ============================================================================================== */
+#define VCHECK_NODE DT_ALIAS(sw1)
+static const struct gpio_dt_spec vcheck_dev = GPIO_DT_SPEC_GET(VCHECK_NODE, gpios);
+static struct gpio_callback vcheck_cb_data;
+static void vcheck_int_handle(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+  myVcheck.toogle_flag = true;
+}
+void vcheck_gpiote_init()
+{
+	int ret;
+	if (!device_is_ready(vcheck_dev.port))
+	{
+		return;
+	}
+	ret = gpio_pin_configure_dt(&vcheck_dev, GPIO_INPUT);
+	if (ret < 0)
+	{
+		return;
+	}
+	else
+		LOG_INF("user button init ok\n");
+	ret = gpio_pin_interrupt_configure_dt(&vcheck_dev, GPIO_INT_EDGE_BOTH); 
+	gpio_init_callback(&vcheck_cb_data, vcheck_int_handle, BIT(vcheck_dev.pin));  
+	gpio_add_callback(vcheck_dev.port, &vcheck_cb_data);
+}
+void vcheck_EvenTimer_handle()
+{
+  if(myVcheck.toogle_flag)
+  {
+    myVcheck.active_cnt++;
+    if(myVcheck.active_cnt >= 5)
+    {
+      nrf_gpio_pin_clear(BQ_CE); //无论插入还是拔下充电器，ce引脚都拉低
+      if(nrf_gpio_pin_read(VCHECK))
+        yk_tm.charging_sta = true;
+      else
+        yk_tm.charging_sta = false;
+      myVcheck.active_cnt = 0;
+      myVcheck.toogle_flag = false;
+      refresh_flag.charging_sta = true;        
+    }
+  }
+}
 
 
 

@@ -14,13 +14,11 @@
 
 static void pca9546_gpio_init(){
   nrf_gpio_cfg_output(PCA_RESET);
-  nrf_gpio_cfg_output(PCA_A0);
-  nrf_gpio_cfg_output(PCA_A1);
-  nrf_gpio_cfg_output(PCA_A2); 
+  nrf_gpio_cfg_output(CH1_EN);
+  nrf_gpio_cfg_output(CH2_EN);
   nrf_gpio_pin_set(PCA_RESET); 
-  nrf_gpio_pin_clear(PCA_A0);
-  nrf_gpio_pin_clear(PCA_A1);
-  nrf_gpio_pin_clear(PCA_A2);
+  nrf_gpio_pin_clear(CH1_EN); 
+  nrf_gpio_pin_clear(CH2_EN);     
 }
 static void htl621_gpio_init()
 {
@@ -31,13 +29,12 @@ static void htl621_gpio_init()
   nrf_gpio_pin_clear(LCD_WR);
   nrf_gpio_pin_clear(LCD_DATA);  
 }
-
 void yonker_tm_gpio_init()
 {
   pca9546_gpio_init();
   htl621_gpio_init();
-  
-
+  nrf_gpio_cfg_output(BQ_CE);
+  nrf_gpio_pin_clear(BQ_CE);
 }
 
 

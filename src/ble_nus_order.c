@@ -113,6 +113,7 @@ uint8_t che_open_storage_order(const uint8_t *const rxbuf, uint16_t len)//开存
       /* 设置是否存储 */
       if(rxbuf[2] == 0x03)
       {
+        all_storage_open(); //顺序在前
         yk_tm.storage_sta = true;
         refresh_flag.storage_sta = true;
         printk("start storage fun\n\r");
@@ -131,11 +132,11 @@ uint8_t che_close_storage_order(const uint8_t *const rxbuf, uint16_t len)//关�
       /* 设置中断停止存储功能 */
       if((rxbuf[2] == 0x04)&&(rxbuf[3] == 0x45)&&(rxbuf[4] == 0x4e)&&(rxbuf[5] == 0x44))
       {
-        all_storage_close();
         yk_tm.storage_sta = false;
         refresh_flag.storage_sta = true;
         printk("stop storage fun\n\r");
-        reback_order_Status("stop storage", 12);        
+        reback_order_Status("stop storage", 12);   
+        all_storage_close(); //顺序在后
         return 1;
       }  
      }
@@ -191,6 +192,7 @@ uint8_t che_DevStatus_order(const uint8_t *const rxbuf, uint16_t len)//获取设
 {
   if(len == 6)
   {
+    uint16_t over_cnt = 20000;
     //if(memcmp(rxbuf, order_status[0], 5) == 0)
     if((rxbuf[0]==0x53)&&(rxbuf[1]==0x54)&&(rxbuf[2]==0x41)&&(rxbuf[3]==0x54)&&(rxbuf[4]==0x55)&&(rxbuf[5]==0x53))
     {
@@ -203,12 +205,36 @@ uint8_t che_DevStatus_order(const uint8_t *const rxbuf, uint16_t len)//获取设
       reback_code[5] = timeInfo_stamp.day;
       reback_code[6] = timeInfo_stamp.hour;
       reback_code[7] = timeInfo_stamp.min;
-      reback_code[8] = channel_0.storage_idx >> 8 & 0xff;
-      reback_code[9] = channel_0.storage_idx & 0xff;
-      reback_code[10] = channel_1.storage_idx >> 8 & 0xff;
-      reback_code[11] = channel_1.storage_idx & 0xff;
-      reback_code[12] = channel_2.storage_idx >> 8 & 0xff;
-      reback_code[13] = channel_2.storage_idx & 0xff;
+      if(channel_0.storage_over)
+      {
+        reback_code[8] = over_cnt >> 8 & 0xff;
+        reback_code[9] = over_cnt & 0xff;
+      }
+      else
+      {
+        reback_code[8] = channel_0.storage_idx >> 8 & 0xff;
+        reback_code[9] = channel_0.storage_idx & 0xff;
+      }
+      if(channel_0.storage_over)
+      {      
+        reback_code[10] = over_cnt >> 8 & 0xff;
+        reback_code[11] = over_cnt & 0xff;
+      }
+      else
+      {
+        reback_code[10] = channel_1.storage_idx >> 8 & 0xff;
+        reback_code[11] = channel_1.storage_idx & 0xff;   
+      }
+      if(channel_0.storage_over)
+      {          
+        reback_code[12] = over_cnt >> 8 & 0xff;
+        reback_code[13] = over_cnt & 0xff;
+      }
+      else
+      {
+        reback_code[12] = channel_2.storage_idx >> 8 & 0xff;
+        reback_code[13] = channel_2.storage_idx & 0xff;  
+      }    
       reback_code[14] = 0x66;
       reback_code[15] = 0xbb;
       printk("get dev storage and data sign \n\r");
