@@ -9,6 +9,9 @@ LOG_MODULE_REGISTER(LOG_BUTTON_NAME);
 extern bool sensor_read_flag;
 extern uint16_t sensor_read_Tcnt;
 
+extern bool stop_charging_delay;
+extern uint16_t stop_charging_cnt;
+
 /**
  * @brief 按键事件判断逻辑
  * 
@@ -160,7 +163,11 @@ void vcheck_EvenTimer_handle()
       if(nrf_gpio_pin_read(VCHECK))
         yk_tm.charging_sta = true;
       else
+      {
+        stop_charging_cnt = 0;
+        stop_charging_delay = true;
         yk_tm.charging_sta = false;
+      }
       myVcheck.active_cnt = 0;
       myVcheck.toogle_flag = false;
       refresh_flag.charging_sta = true;        

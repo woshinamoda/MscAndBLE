@@ -206,8 +206,8 @@ static struct bt_le_adv_param *adv_param = BT_LE_ADV_PARAM(
 	// 静态修改广播
 	(BT_LE_ADV_OPT_CONNECTABLE |
 	BT_LE_ADV_OPT_USE_IDENTITY),
-	800,			//5000ms x 0.625
-	800,		  //5000ms x 0.625
+	1600,			//5000ms x 0.625
+	1600,		  //5000ms x 0.625
 	NULL);
 static const struct bt_data ad[] = {
 	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)), // 可发现，并且不支持经典蓝牙
@@ -466,8 +466,8 @@ static int settings_runtime_load(void)
 #endif
 #if defined(CONFIG_BT_DIS_FW_REV)
 	settings_runtime_set("bt/dis/fw",
-			     CONFIG_BT_DIS_FW_REV_STR,
-			     sizeof(CONFIG_BT_DIS_FW_REV_STR));
+			    	"V0.0.4test",
+			     sizeof("V0.0.4test"));
 #endif
 #if defined(CONFIG_BT_DIS_HW_REV)
 	settings_runtime_set("bt/dis/hw",
@@ -580,8 +580,8 @@ static void customer_thread()
 				break;
 			}
 			refresh_flag.channel_warming_sta = true;
-			nrf_gpio_pin_clear(CH1_EN); 
- 		  nrf_gpio_pin_clear(CH2_EN);     
+			// nrf_gpio_pin_clear(CH1_EN); 
+ 		  // nrf_gpio_pin_clear(CH2_EN);     
 		}
 	}
 }
@@ -598,7 +598,7 @@ static void storage_thread()
 {
 	while(1)
 	{
-		k_usleep(50);
+		k_msleep(1);
 		if(yk_tm.storage_read_sta == true)
 		{
 			readStorage_SendData();

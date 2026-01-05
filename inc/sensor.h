@@ -22,7 +22,7 @@
 /**
  * @brief device bh1750 register list
  * bh1750 resolurtion depend on mode set , @see P5
- * H-mode2 - 0.5lx 
+ * H-mode2 - 0.5lx
  * H-mode - 1lx
  * L-mode - 4lx
  */

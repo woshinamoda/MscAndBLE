@@ -21,6 +21,7 @@ static void ht1621_delay_us(uint32_t us);
 static void LittleMode_SendBit_ht1621(uint8_t Data, uint8_t num);
 static void writeCmd_ht1621(uint8_t cmd);
 static void display_upNumber(bool is_err, int16_t num, uint8_t pot);
+static void display_upNumber_klux(bool is_err, int16_t num, uint8_t pot);
 static void display_downNumber(bool is_none, uint16_t num, uint8_t pot);
 /*====================================================================*/
 
@@ -239,7 +240,7 @@ void display_sensor_data(uint8_t chn)
     }
     if((channel_1.channel_type == bh1750)||(channel_1.channel_type == max44009))
     {
-      display_upNumber(false, channel_1.klux, 1);
+      display_upNumber_klux(false, channel_1.klux, 2);
       display_downNumber(true, channel_1.channel_type, 1);    
       CLEAR_BIT(seg_comBuf[31], COM2);
       SET_BIT(seg_comBuf[31], COM3);    
@@ -278,7 +279,7 @@ void display_sensor_data(uint8_t chn)
     }
     if((channel_2.channel_type == bh1750)||(channel_2.channel_type == max44009))
     {
-      display_upNumber(false, channel_2.klux, 1);
+      display_upNumber_klux(false, channel_2.klux, 2);
       display_downNumber(true, channel_2.channel_type, 1);    
       CLEAR_BIT(seg_comBuf[31], COM2);
       SET_BIT(seg_comBuf[31], COM3);    
@@ -382,6 +383,83 @@ static void display_upNumber(bool is_err, int16_t num, uint8_t pot)
         seg_comBuf[12] = 0x00;
         seg_comBuf[11] = 0x00;
       }
+    }
+    if(pot == 1)
+    {
+      SET_BIT(seg_comBuf[14],COM4);
+      CLEAR_BIT(seg_comBuf[12],COM4);
+      CLEAR_BIT(seg_comBuf[10],COM4);
+    }
+    if(pot == 2)
+    {
+      CLEAR_BIT(seg_comBuf[14],COM4);
+      SET_BIT(seg_comBuf[12],COM4);
+      CLEAR_BIT(seg_comBuf[10],COM4);
+    }
+    if(pot == 3)
+    {
+      CLEAR_BIT(seg_comBuf[14],COM4);
+      CLEAR_BIT(seg_comBuf[12],COM4);
+      SET_BIT(seg_comBuf[10],COM4);
+    }  
+  }
+  if(is_negative)
+  {
+    is_negative = false;
+    seg_comBuf[10] = 0x00;
+    seg_comBuf[9]  = 0x04;
+  }
+  for(uint8_t i=9; i<17; i++)
+  {
+   writeData_ht1621(i-1, seg_comBuf[i]); 
+  }
+}
+static void display_upNumber_klux(bool is_err, int16_t num, uint8_t pot)
+{
+  bool is_negative = false;
+  uint8_t one,ten,hundred,thousand;
+  if(num < 0)
+  {
+    is_negative = true;
+    num = abs(num);
+  }
+  one      = num/1%10;
+  ten      = num/10%10;
+  hundred  = num/100%10;
+  thousand = num/1000%10;  
+  if(is_err)
+  {
+    seg_comBuf[10] = 0x00;
+    seg_comBuf[9]  = 0x00;
+    seg_comBuf[12] = 0x08;
+    seg_comBuf[11] = 0x0f;
+    seg_comBuf[14] = 0x08;
+    seg_comBuf[13] = 0x0a;
+    seg_comBuf[15] = 0x0a;
+    seg_comBuf[16] = 0x08;  
+  }
+  else
+  {
+    if(thousand != 0){
+      seg_comBuf[16] = num_wilcard_l[one];
+      seg_comBuf[15] = num_wilcard_h[one];
+      seg_comBuf[14] = num_wilcard_l[ten];
+      seg_comBuf[13] = num_wilcard_h[ten]; 
+      seg_comBuf[12] = num_wilcard_l[hundred];
+      seg_comBuf[11] = num_wilcard_h[hundred];  
+      seg_comBuf[10] = num_wilcard_l[thousand];
+      seg_comBuf[9]  = num_wilcard_h[thousand];        
+    }
+    else
+    {
+      seg_comBuf[10] = 0x00;
+      seg_comBuf[9] = 0x00;
+      seg_comBuf[16] = num_wilcard_l[one];
+      seg_comBuf[15] = num_wilcard_h[one];
+      seg_comBuf[14] = num_wilcard_l[ten];
+      seg_comBuf[13] = num_wilcard_h[ten];
+      seg_comBuf[12] = num_wilcard_l[hundred];
+      seg_comBuf[11] = num_wilcard_h[hundred];           
     }
     if(pot == 1)
     {

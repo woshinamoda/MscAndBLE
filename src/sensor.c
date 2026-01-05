@@ -12,6 +12,7 @@
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/sys/printk.h>
 #include "sensor.h"
+#include "math.h"
 
 #define LOG_SENSOR_NAME TM_SENSOR
 LOG_MODULE_REGISTER(LOG_SENSOR_NAME);
@@ -91,13 +92,24 @@ static int bh1750_WriteRead_NumBytes(uint8_t *DataBuf, uint8_t number){
   }
   return ret;
 }
-static int max44009_write_Bytes(uint8_t reg){
+static int max44009_write_Bytes(uint8_t reg, uint8_t data){
  int ret;
-  ret = i2c_write_dt(&dev_max44009, &reg, 1);
+ uint8_t codebuf[2];
+ codebuf[0] = reg;
+ codebuf[1] = data;
+  ret = i2c_write_dt(&dev_max44009, codebuf, 2);
   if(ret != 0)
   {
     //LOG_WRN("IIC write MAX44009_NODE err reson is: 0x%c\n", ret);
   }
+  return ret;
+}
+static int max44009_WriteRead_NumBytes(uint8_t *DataBuf, uint8_t number){
+  int ret;
+  uint8_t reg0 = 0x03;
+  uint8_t reg1 = 0x04;  
+ ret = i2c_write_read(i2c_dev, 0x4A, &reg0, 1, &DataBuf[0], 1); 
+ ret = i2c_write_read(i2c_dev, 0x4A, &reg1, 1, &DataBuf[1], 1);   
   return ret;
 }
 /** @note 3个传感器和通道切换芯片的读写函数-------------------------------------- */
@@ -126,6 +138,13 @@ void judege_sensor_warming(yongker_tm_channelDef *chn)
     else
       { yk_tm.warm_icon_sta = false;} 
   }
+   if(chn->channel_type == max44009)
+  {
+    if((chn->klux >= chn->h_lux)||(chn->klux <= chn->l_lux))
+      { yk_tm.warm_icon_sta = true;}
+    else
+      { yk_tm.warm_icon_sta = false;} 
+  } 
 }
 void read_sensor_data(yongker_tm_channelDef *chn)
 {
@@ -137,7 +156,7 @@ void read_sensor_data(yongker_tm_channelDef *chn)
   if(chn->channel_type == sht40)
   {
     /*jb芯片，最少要等10ms转换*/
-    k_msleep(10);
+    k_msleep(15);
     sht40_ReadNumBytes(sensor_ReadBuf, 6);
     temp_raw = ((uint32_t)sensor_ReadBuf[0] << 8) | sensor_ReadBuf[1];
     humid_raw = ((uint32_t)sensor_ReadBuf[3] << 8) | sensor_ReadBuf[4];
@@ -148,15 +167,36 @@ void read_sensor_data(yongker_tm_channelDef *chn)
   }
   if(chn->channel_type == bh1750)
   {
-    bh1750_write_Byte(BH1750_SINGLE_L_MODE);
-    k_msleep(24);
+    bh1750_write_Byte(BH1750_CONTINU_L_MODE);
+    k_msleep(25);
     bh1750_WriteRead_NumBytes(sensor_ReadBuf, 2);
     plux = (sensor_ReadBuf[0]<<8 | sensor_ReadBuf[1]);
     chn->temp_celsius    = 0;
     chn->temp_fahrenheit = 0;
     chn->humidity        = 0;
-    chn->klux = plux * 10 / 1.2;
+    //原本应该除以1000，转klux，现在是lux。改为除10，这样保留2位小数
+    //另外手册要求除以120，实测彭云确实除了0.46，最大可以卡在120klux    
+    chn->klux = plux * 100 / 96 / 10;
+    if(chn->klux >= 9999)
+      chn->klux = 9999;    
   }
+  if(chn->channel_type == max44009)
+  {
+    uint32_t E, M;
+    k_msleep(50);
+    max44009_WriteRead_NumBytes(sensor_ReadBuf, 2);
+    E = sensor_ReadBuf[0] >>4;
+    M = (((sensor_ReadBuf[0] & 0x0f) << 4)|(sensor_ReadBuf[1] & 0x0f));
+    //和1750一样lux转klux，然后除1000改10，保留2位小数
+    plux = (1 << E) * M * 45 / 1000 / 10;
+    chn->temp_celsius    = 0;
+    chn->temp_fahrenheit = 0;
+    chn->humidity        = 0;
+    chn->klux = plux;
+    if(chn->klux >= 9999)
+      chn->klux = 9999;
+  }
+  k_msleep(10);
 }
 uint8_t CheckChn_Sensor_is(uint8_t chn){
   uint8_t sensor_is;
@@ -184,7 +224,7 @@ uint8_t CheckChn_Sensor_is(uint8_t chn){
     sensor_is = bh1750;
     return sensor_is;
   }
-  ret_code = max44009_write_Bytes(MAX_INIT_ENABLE);
+  ret_code = max44009_write_Bytes(MAX_CONFIGURATION, 0x03);
   if(ret_code != 0)
   {
     //LOG_ERR("channel %d is not max44009\n", chn);

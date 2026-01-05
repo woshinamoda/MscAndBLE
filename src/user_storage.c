@@ -854,14 +854,24 @@ void readStorage_SendData()
 	/* 通道0的读取和发送都完成了 */
 	if(!channel_0.storage_read_ok)//&&(channel_0.sending_sta==false))
 	{
-		readStorage_chn0Data();
+		for(uint8_t i=0; i<5; i++)
+		{
+			readStorage_chn0Data();//连着读取5条数据
+			if(channel_0.sending_sta == true)//如果该发送了，就退出来，进入发送函数
+				break;
+		}
 		BleSend_Chn0Data();
 	}
 	else if(!channel_1.storage_read_ok)//&&(channel_1.sending_sta==false))
 	{
 		if(channel_0.sending_sta==false)
 		{//等通道0的发送也完全执行完，在开始通道1的读/发
-			readStorage_chn1Data();
+			for(uint8_t i=0; i<5; i++)
+			{
+				readStorage_chn1Data();
+				if(channel_1.sending_sta == true)
+					break;
+			}
 			BleSend_Chn1Data();
 		}
 	}
@@ -869,7 +879,12 @@ void readStorage_SendData()
 	{
 		if(channel_1.sending_sta==false)
 		{
-			readStorage_chn2Data();
+			for(uint8_t i=0; i<5; i++)
+			{
+				readStorage_chn2Data();
+				if(channel_2.sending_sta == true)
+					break;
+			}
 			BleSend_Chn2Data();
 		}
 	}

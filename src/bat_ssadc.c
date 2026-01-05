@@ -17,6 +17,11 @@ static uint16_t sample;
 static uint16_t bat_vol;
 static uint16_t batRead_cnt;
 
+//是否刚拔下充电器，延迟一段时间，停止测试电池电量
+bool stop_charging_delay = false;
+//延迟的计数
+uint16_t stop_charging_cnt = 0;
+
 static void BatAdc_tranTo_BatLev(uint16_t mvolts);
 static void BatAdc_tranTo_FirstBatLeve(uint16_t mvolts);
 
@@ -107,39 +112,51 @@ void bat_Systime_handle()
   /* 不充电时， 5sec测一次，累计10次计算一次电量 */
   else
   {
-    batRead_cnt++;
-    if(batRead_cnt >= BAT_LEV_PERIOD)
+    if(stop_charging_delay)
     {
-      batRead_cnt = 0;
-      //set buffer
-      err = nrfx_saadc_buffer_set(&sample, 1);
-      if (err != NRFX_SUCCESS) {
-          printk("Timer: nrfx_saadc_buffer_set error: %08x\n", err);
-          return;
-      }
-      //处罚单次采样
-      err = nrfx_saadc_mode_trigger();
-      if (err != NRFX_SUCCESS) {
-        printk("nrfx_saadc_mode_trigger error: %08x", err);
-        return;
-      }
-      batVolBuffer[batBuf_cnt] = sample;
-      batBuf_cnt++;
-      if(batBuf_cnt == 10)
+      stop_charging_cnt++;
+      if(stop_charging_cnt >= 1000)
       {
-        batBuf_cnt = 0;
-        uint16_t sub, avr;
-        for(uint8_t i=0; i<10; i++)
-        {
-          sub = sub + batVolBuffer[i];
-        }
-        avr = sub/10;
-        bat_vol = ((600 * 6) * avr) / (1 << 12);
-        BatAdc_tranTo_BatLev(bat_vol);
-        refresh_flag.adc_sta = true;
-        bt_bas_set_battery_level(yk_tm.bat_precent);
+        stop_charging_cnt = 0;
+        stop_charging_delay = false;
       }
-    }      
+    }
+    else
+    {
+      batRead_cnt++;
+      if(batRead_cnt >= BAT_LEV_PERIOD)
+      {
+        batRead_cnt = 0;
+        //set buffer
+        err = nrfx_saadc_buffer_set(&sample, 1);
+        if (err != NRFX_SUCCESS) {
+            printk("Timer: nrfx_saadc_buffer_set error: %08x\n", err);
+            return;
+        }
+        //处罚单次采样
+        err = nrfx_saadc_mode_trigger();
+        if (err != NRFX_SUCCESS) {
+          printk("nrfx_saadc_mode_trigger error: %08x", err);
+          return;
+        }
+        batVolBuffer[batBuf_cnt] = sample;
+        batBuf_cnt++;
+        if(batBuf_cnt == 10)
+        {
+          batBuf_cnt = 0;
+          uint16_t sub, avr;
+          for(uint8_t i=0; i<10; i++)
+          {
+            sub = sub + batVolBuffer[i];
+          }
+          avr = sub/10;
+          bat_vol = ((600 * 6) * avr) / (1 << 12);
+          BatAdc_tranTo_BatLev(bat_vol);
+          refresh_flag.adc_sta = true;
+          bt_bas_set_battery_level(yk_tm.bat_precent);
+        }
+      }  
+    }    
   }
 }
 static void BatAdc_tranTo_BatLev(uint16_t mvolts)
