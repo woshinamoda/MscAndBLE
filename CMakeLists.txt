@@ -17,4 +17,5 @@ target_sources(app PRIVATE
  src/bat_ssadc.c
  src/ble_nus_order.c
  src/button.c
+ src/server_4G.c
  )

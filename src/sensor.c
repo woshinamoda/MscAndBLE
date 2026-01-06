@@ -33,7 +33,6 @@ static const struct i2c_dt_spec dev_pca9546  = I2C_DT_SPEC_GET(PCA9546_NODE);
  * @brief SHT40 T Accuracy = 0.2℃ all command have six respond
  */
 static uint8_t sensor_ReadBuf[20];
-
 /** @note 3个传感器和通道切换芯片的读写函数-------------------------------------- */
 static void pca9546_channel_select(uint8_t chn){
   int ret;
