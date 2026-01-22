@@ -52,8 +52,8 @@ static uint8_t month_day_is(uint16_t year, uint8_t month)
  */
 static void secAll_to_timeInfo(timeinfo_TypeDef *tm)
 {
-	tm->sec++;
-	//tm->sec = tm->sec + 6;
+	//tm->sec++;
+	tm->sec = tm->sec + 6;
 	if(tm->sec >= 60)
 	{
 		tm->sec = 0;

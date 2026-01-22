@@ -37,15 +37,23 @@
 #include "bat_ssadc.h"
 #include "ble_nus_order.h"
 #include "button.h"
+#include "server_4G.h"
+
+extern uint8_t usim_ccid[20];   			    //sim卡唯一识别号
+extern uint8_t usim_rssi;   		          //信号强度 0 - 4
+extern uint8_t ec801_send_buf[122];				//4g数据发送缓冲数组
 
 /* user define code verial ********************************************************************/
 #define LOG_MODULE_NAME YKTM_LOG
 LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 struct bt_conn *my_conn = NULL;
-uint16_t sensor_read_Tcnt = 0;
+uint16_t sensor_read_Tcnt = 0;		//传感器读取计时，unit 10ms
 bool sensor_read_flag = false;		//允许读取传感器旗标，开机的时候会卡住，随后正常运行过程中超过<更新>间隔，置(真)一次
 bool storage_flag = false;				//允许存储/发送旗标，运行过程中超过<采样>间隔，置为真。
+
+uint8_t test_4G_cnt=0;
 uint8_t send_data_buf[28] = {0x55,0xaa};
+uint8_t SendCnt = 0;							//讲个5min 0 - 4计数器，到了5min发送一次4G数据
 
 yongker_TM_initTypedef yk_tm={
 	.warm_icon_sta = false,
@@ -466,8 +474,8 @@ static int settings_runtime_load(void)
 #endif
 #if defined(CONFIG_BT_DIS_FW_REV)
 	settings_runtime_set("bt/dis/fw",
-			    	"V0.0.4test",
-			     sizeof("V0.0.4test"));
+			    	"4G-V0.0.1",
+			     sizeof("4G-V0.0.1"));
 #endif
 #if defined(CONFIG_BT_DIS_HW_REV)
 	settings_runtime_set("bt/dis/hw",
@@ -490,9 +498,9 @@ int main(void)
 	my_rtc_init();
 	yonker_tm_gpio_init();
 	lcd_ht1621_init();
-	Fatfs_storage_init();
 	ssadc_init();
 	display_lcd_init();
+	uart_4Gnetwork_init();
 	/* 注册连接事件回调 */
 	bt_conn_cb_register(&connection_callbacks);	
 	/* 先使能协议栈 */
@@ -518,17 +526,39 @@ int main(void)
 		LOG_ERR("Failed to initialize UART service (err: %d)", err);
 		return;
 	}	
- /* 开启广播 */
-	err = bt_le_adv_start(adv_param, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
-	if (err)
-	{
-		LOG_ERR("Advertising failed to start (err %d)\n", err);
-		return;
-	}
 	yongker_tm_work_queue_init();
 	button_gpiote_init();
 	vcheck_gpiote_init();
 	sensor_read_flag = true;
+	while(1)
+	{
+		k_msleep(60000);		//1min执行一次
+		ec801_send_buf[28+SendCnt*18] = 0x00;
+		ec801_send_buf[29+SendCnt*18] = channel_0.channel_type;
+		anaylse_channelType(&channel_0, &ec801_send_buf[30+SendCnt*18]);
+		ec801_send_buf[34+SendCnt*18] = 0x01;
+		ec801_send_buf[35+SendCnt*18] = channel_1.channel_type;
+		anaylse_channelType(&channel_1, &ec801_send_buf[36+SendCnt*18]);
+		ec801_send_buf[34+SendCnt*18] = 0x02;
+		ec801_send_buf[35+SendCnt*18] = channel_2.channel_type;
+		anaylse_channelType(&channel_2, &ec801_send_buf[36+SendCnt*18]);
+		SendCnt++;
+		if(SendCnt >= 5)
+		{
+			SendCnt = 0;
+			ec801_send_buf[0] = 0x55;
+			ec801_send_buf[1] = 0xAA;
+			memcpy(&ec801_send_buf[2], bt_mac_add, 6);	
+			memcpy(&ec801_send_buf[8], usim_ccid, 20);		
+			ec801_send_buf[118] = yk_tm.bat_precent;
+			ec801_send_buf[119] = usim_rssi;
+			ec801_send_buf[120] = 0x66;
+			ec801_send_buf[121] = 0xBB;
+			test_4G_cnt++;	//测试丢包
+			if(ec801.init_is_ok)
+				ec801.dev_num = 2;
+		}
+	}
 }
 /**
  * @brief： 消费者线程
@@ -586,34 +616,6 @@ static void customer_thread()
 	}
 }
 K_THREAD_DEFINE(customer_ID, STACKSIZE, customer_thread, NULL, NULL, NULL, CUSTOMER_THREAD_PRIORITY, 0,	0);
-/**
- * @brief： 存储与发送存储线程
- * @priority:  2
- * @description: 1. 触发存储旗标storage_sta为真时，在此线程执行存储，优先级要高于现实和数据读取，因为存储绝对不能错一行。
- * @contiun:     2. 触发蓝牙发送存储数据任务时，再次线程中执行，同时也会主动关闭存储功能，优先此线程中只有蓝牙发送功能。
- */
-#define STORAGE_SIZE	2048	
-#define STORAGE_THREAD_PRIORITY 1
-static void storage_thread()
-{
-	while(1)
-	{
-		k_msleep(1);
-		if(yk_tm.storage_read_sta == true)
-		{
-			readStorage_SendData();
-		}		
-		if((storage_flag == true)&&(yk_tm.storage_sta == true))
-		{
-			storage_flag = false;
-			storageCutIn_chn0_data();
-			storageCutIn_chn1_data();
-			storageCutIn_chn2_data();
-		}
-	}
-}
-K_THREAD_DEFINE(storage_ID, STORAGE_SIZE, storage_thread, NULL, NULL, NULL, STORAGE_THREAD_PRIORITY, 0,	0);
-
 
 
 

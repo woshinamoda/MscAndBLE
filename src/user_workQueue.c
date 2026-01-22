@@ -13,6 +13,7 @@
 #include "lcd.h"
 #include "bat_ssadc.h"
 #include "button.h"
+#include "server_4G.h"
 /**
  * @brief 更新lcd刷屏的功能函数
  */
@@ -63,7 +64,6 @@ static void systimer_function()
   yk_tm_order_cb();
   button_EvenTimer_handle();
   vcheck_EvenTimer_handle();
-
 }
 /**************************************************************************
  * @brief refresh work queue 
@@ -97,7 +97,6 @@ static void refresh_timer_handle(struct k_timer *dummy)		//timer tick = 10ms
 }
 static K_TIMER_DEFINE(LcdTimer, refresh_timer_handle, NULL);
 
-
 /**************************************************************************
  * @brief 系统定时器 
  * @see   systimer tick 10ms
@@ -130,6 +129,38 @@ static void SysTimer_handle(struct k_timer *dummy)		//timer tick = 10ms
 }
 static K_TIMER_DEFINE(sysTimer, SysTimer_handle, NULL);
 
+/**************************************************************************
+ * @brief refresh work queue 
+ * @see   app定时器10ms周期检测是否更新显示器内容
+ * @priority : 10
+ *************************************************************************/
+#define EC801_STA_SIZE         512
+#define EC801_STA_PRIORITY     2
+static K_THREAD_STACK_DEFINE(ec801_sta_stack_area, EC801_STA_SIZE);
+static struct k_work_q work_ec801_sta = {0};
+struct work_ec801_sta_info{
+  struct k_work work;
+  char name[10];
+}work_ec801_sta_info;
+static void work_ec801_sta_init()
+{
+  k_work_queue_start(&work_ec801_sta, ec801_sta_stack_area,
+                      K_THREAD_STACK_SIZEOF(ec801_sta_stack_area), 
+                      EC801_STA_PRIORITY,
+                      NULL);
+  strcpy(work_ec801_sta_info.name, "ec801");
+  k_work_init(&work_ec801_sta_info.work, EC801_interval_TimerCb);
+}
+static void submit_to_queue_ec801_sta()
+{
+  k_work_submit_to_queue(&work_ec801_sta, &work_ec801_sta_info.work);
+}
+static void ec801_timer_handle(struct k_timer *dummy)		//timer tick = 10ms
+{
+	submit_to_queue_ec801_sta();
+}
+static K_TIMER_DEFINE(ec801Timer, ec801_timer_handle, NULL);
+
 
 void yongker_tm_work_queue_init()
 {
@@ -144,6 +175,9 @@ void yongker_tm_work_queue_init()
    */
   work_systimer_stack_init();
   k_timer_start(&sysTimer, K_MSEC(1), K_MSEC(10));
+
+  work_ec801_sta_init();
+  k_timer_start(&ec801Timer, K_MSEC(1), K_MSEC(EC801_INIT_PERIOD));  
 }
 
 

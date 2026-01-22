@@ -86,7 +86,7 @@ typedef enum
   nosensor  = 0x00,   //悬空
   sht40     = 0x01,   //温湿度1
   bh1750    = 0x02,   //光照强度
-  max44009  = 0x03    //光照强度
+  max44009  = 0x02    //光照强度
 }sensor_TypeDef;
 
 typedef struct
