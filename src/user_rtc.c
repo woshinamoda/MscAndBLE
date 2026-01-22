@@ -52,8 +52,7 @@ static uint8_t month_day_is(uint16_t year, uint8_t month)
  */
 static void secAll_to_timeInfo(timeinfo_TypeDef *tm)
 {
-	//tm->sec++;
-	tm->sec = tm->sec + 6;
+	tm->sec++;
 	if(tm->sec >= 60)
 	{
 		tm->sec = 0;
@@ -93,11 +92,6 @@ static void timer0_RTC_handle(struct k_timer *dummy)		//timer tick = 10ms
 {
 	last_minth = timeInfo_stamp.min;
 	secAll_to_timeInfo(&timeInfo_stamp);	
-	if(timeInfo_stamp.min!=last_minth)
-	{
-		last_minth = timeInfo_stamp.min;
-		refresh_flag.rtc_sta = true;
-	}
 }
 static K_TIMER_DEFINE(timer0, timer0_RTC_handle, NULL);
 void my_rtc_init()

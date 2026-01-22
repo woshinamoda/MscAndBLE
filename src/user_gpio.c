@@ -37,13 +37,7 @@ void yonker_tm_gpio_init()
   nrf_gpio_pin_clear(BQ_CE);
 }
 
-
-
-
-
-
-
-
+  
 
 
 

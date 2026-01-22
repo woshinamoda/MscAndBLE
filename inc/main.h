@@ -26,6 +26,11 @@
 #include <hal/nrf_gpio.h>
 // nordic nrfx driver include
 #include <nrfx_gpiote.h>
+//电源管理头文件
+#include <zephyr/device.h>
+#include <zephyr/kernel.h>
+#include <zephyr/pm/device.h>
+#include <zephyr/sys/poweroff.h>
 
 //user set period
 #define RSSI_READ_PERIOD      500     //unit 10ms
@@ -140,7 +145,9 @@ typedef struct
   bool press_flag;
   bool short_flag;
   bool long_flag;
+  bool more_long_flag;
   uint16_t press_cnt;
+  uint8_t long_press_cnt;
 }Button_InitTypeDef;
 typedef struct 
 {
@@ -170,4 +177,15 @@ void reback_order_Status(uint8_t *code, uint16_t len);
  * @param Tcompare 用于对比的时间间隔
  */
 void send_yktm_Data(uint8_t Tcompare);
+/**
+ * @brief 关机前先关闭显示器
+ * @see 长按触发先关闭显示，随后等按键谈起在彻底关闭
+ * 
+ */
+void dev_intosleep_front();
+/**
+ * @brief 设备进入关机
+ * 
+ */
+void dev_intoSleep();
 #endif

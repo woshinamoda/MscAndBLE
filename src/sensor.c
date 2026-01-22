@@ -236,7 +236,11 @@ uint8_t CheckChn_Sensor_is(uint8_t chn){
   }
   return sensor_is;
 }
-
+void disable_iic()
+{
+	int rc;
+	rc = pm_device_action_run(i2c_dev, PM_DEVICE_ACTION_SUSPEND);
+}
 
 
 

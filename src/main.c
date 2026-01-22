@@ -488,7 +488,35 @@ static int settings_runtime_load(void)
 /* 设备信息--- 服务部分代码* end******************************************************************/
 
 /* 用户逻辑功能*----------- start****************************************************************/
+void dev_intosleep_front()
+{
+	disable_iic();
+	disable_uart0();
+	lcd_close_display();
+}
+void dev_intoSleep()
+{
+  nrf_gpio_pin_clear(CH1_EN); 
+  nrf_gpio_pin_clear(CH2_EN);   
+  nrf_gpio_pin_clear(LCD_CS);
+  nrf_gpio_pin_clear(LCD_WR);
+  nrf_gpio_pin_clear(LCD_DATA);  
+  nrf_gpio_pin_clear(LCD_DATA);    
+  nrf_gpio_pin_clear(BQ_CE);
 
+  nrf_gpio_pin_clear(MODULE_EN);   
+  nrf_gpio_pin_clear(DTR_4G);  
+
+  nrf_gpio_cfg_output(TXD_4G);   
+  nrf_gpio_cfg_output(RXD_4G);   	  
+  nrf_gpio_pin_clear(TXD_4G);  	
+  nrf_gpio_pin_clear(RXD_4G);  	
+
+  nrf_gpio_cfg_input(BUTTON, NRF_GPIO_PIN_NOPULL);
+  nrf_gpio_cfg_sense_set(BUTTON, NRF_GPIO_PIN_SENSE_LOW); 
+	
+	sys_poweroff();
+}
 /* 用户逻辑功能*----------- end******************************************************************/
 uint8_t senser_is_num = 0;
 int main(void)

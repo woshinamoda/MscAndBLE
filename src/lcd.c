@@ -33,7 +33,7 @@ void display_ble_sta()
   if(yk_tm.bt_sta)
   {
     seg_comBuf[28] &=  0x07;    //关闭s3的x
-    seg_comBuf[27] |=  0x06;    //点亮蓝牙和广播图标
+    seg_comBuf[27] &=  0x06;    //点亮蓝牙和广播图标
     switch(yk_tm.rssi)
     {
       case 0:
@@ -64,6 +64,7 @@ void display_ble_sta()
     seg_comBuf[28]  = 0x08;  
   }
   seg_comBuf[27] = (seg_comBuf[27]|s10_mask);
+  CLEAR_BIT(seg_comBuf[27], COM3);
   writeData_ht1621(27-1, seg_comBuf[27]);
   writeData_ht1621(28-1, seg_comBuf[28]);
 }
@@ -79,6 +80,9 @@ void display_storage_sta()
     CLEAR_BIT(seg_comBuf[27],COM1);
     SET_BIT(seg_comBuf[25], COM4);
   }
+  //4G模式下没有存储
+  CLEAR_BIT(seg_comBuf[27],COM1);
+  CLEAR_BIT(seg_comBuf[25], COM4);  
   writeData_ht1621(27-1, seg_comBuf[27]);
   writeData_ht1621(25-1, seg_comBuf[25]);  
 }
@@ -94,32 +98,26 @@ void display_rtc_number(bool colSta)
   //数码管10 + s11保持
   s11_mask = seg_comBuf[25] &  0x01;
   s12_mask = seg_comBuf[26] &  0x08;
-  if(hour_ten == 0)
-  {
-    seg_comBuf[25] = (0x00 | s11_mask);
-    seg_comBuf[26] = 0x00;
-  }
-  else
-  {
-    seg_comBuf[25] = (num_wilcard_l[hour_ten] | s11_mask);
-    seg_comBuf[26] = num_wilcard_h[hour_ten];
-  }
+  seg_comBuf[25] = (0x00|s11_mask);
+  seg_comBuf[26] = (0x00|s12_mask); 
+
   //数码管11 + 冒号col
-  seg_comBuf[23] = num_wilcard_l[hour_one];
-  seg_comBuf[24] = num_wilcard_h[hour_one];
+  seg_comBuf[23] = 0x00;
+  seg_comBuf[24] = 0x00;
   if(colSta)
     SET_BIT(seg_comBuf[23], COM4);
   else
     CLEAR_BIT(seg_comBuf[23], COM4);
+
   //数码管12 + 电池边框（必须有）
-  seg_comBuf[21] = num_wilcard_l[min_ten];
-  seg_comBuf[22] = num_wilcard_h[min_ten];
+  seg_comBuf[21] = 0x00;
+  seg_comBuf[22] = 0x00;
   SET_BIT(seg_comBuf[21], COM4);
   //数码管13 + s13保持
   s13_mask = seg_comBuf[19] &  0x01;
-  seg_comBuf[19] = (num_wilcard_l[min_one] | s13_mask);
-  seg_comBuf[20] = num_wilcard_h[min_one];
-  seg_comBuf[26] = (seg_comBuf[26] | s12_mask);
+  seg_comBuf[19] = (0x00 | s13_mask);
+  seg_comBuf[20] = 0x00;
+  seg_comBuf[26] = (0x00 | s12_mask);
 
   writeData_ht1621(19-1, seg_comBuf[19]); 
   writeData_ht1621(20-1, seg_comBuf[20]);  
@@ -607,7 +605,7 @@ void display_lcd_init()
 {
   display_ble_sta();
   display_storage_sta();
-  display_rtc_number(true);
+  display_rtc_number(false);
   display_charge_icon();
   display_waring_icon(false);
   display_bat_level(1);
@@ -627,7 +625,14 @@ void lcd_ht1621_init()
     writeData_ht1621(i,0x00);
   }
 }
-
+void lcd_close_display()
+{
+  for(int i=0x00;i<32;i++)
+  {
+    writeData_ht1621(i,0x00);
+  } 
+  writeCmd_ht1621(LCDOFF);  
+}
 
 
 

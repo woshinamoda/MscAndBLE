@@ -90,7 +90,7 @@ void uart_4Gnetwork_init();
 void uart_tx_order(uint8_t *code, uint16_t length);
 void uart_rx_data_cb(uint8_t *code, uint16_t length);
 void EC801_interval_TimerCb();
-
+void disable_uart0();
 
 
 

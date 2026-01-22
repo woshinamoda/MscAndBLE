@@ -21,8 +21,9 @@ extern uint16_t stop_charging_cnt;
  *  按下时间大于50ms， 小于1000ms内弹起， 视作一次短按触发
  *  按下时间大于1000ms， 每过1000ms触发一次长按事件
  */
-#define   KEY_ERROR_TIME      5       
-#define   KEY_LONG_TIME       100
+#define   KEY_ERROR_TIME          5       
+#define   KEY_LONG_TIME           100
+#define   KEY_MORE_LONG_TIME      400
 
 Button_InitTypeDef  mykey;
 Vcheck_InitTypeDef  myVcheck;
@@ -65,6 +66,13 @@ void button_EvenTimer_handle()
         mykey.long_flag = true;
         mykey.press_cnt = 0;  //重置，循环执行
         button_long_cb();
+        mykey.long_press_cnt++;
+        if(mykey.long_press_cnt > 5)
+        {
+          mykey.long_press_cnt = 0;
+          mykey.more_long_flag = true;
+          button_more_long_cb();
+        }
       }
     }
     else
@@ -72,8 +80,17 @@ void button_EvenTimer_handle()
       mykey.press_flag = false;
       if(mykey.long_flag)
       {
-        mykey.long_flag = false;
-        mykey.press_cnt = 0;
+        if(mykey.more_long_flag)
+        {
+          mykey.more_long_flag = false;
+          dev_intoSleep();
+        }
+        else
+        {
+          mykey.long_flag = false;
+          mykey.long_press_cnt = 0;
+          mykey.press_cnt = 0;
+        }
       }
       else
       {
@@ -125,6 +142,10 @@ void button_long_cb()
 
   refresh_flag.channel_data_sta = true;   
   LOG_INF("key press long\n");
+}
+void button_more_long_cb()
+{
+  dev_intosleep_front();
 }
 /* ============================================================================================== */
 #define VCHECK_NODE DT_ALIAS(sw1)

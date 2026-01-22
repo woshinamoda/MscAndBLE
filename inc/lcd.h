@@ -130,7 +130,7 @@ void display_lcd_init();
  */
 void lcd_ht1621_init();
 
-
+void lcd_close_display();
 
 
 

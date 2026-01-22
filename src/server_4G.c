@@ -7,6 +7,7 @@
 #include <zephyr/logging/log.h>
 #include <string.h>
 #include "server_4G.h"
+#include "lcd.h"
 
 #define LOG_PHERAL_UART uart0
 LOG_MODULE_REGISTER(LOG_PHERIAL_UART);
@@ -163,6 +164,11 @@ void EC801_interval_TimerCb()
     NetWork_send_data();
   }  
 }
+void disable_uart0()
+{
+	int rc;
+	rc = pm_device_action_run(uart_dev, PM_DEVICE_ACTION_SUSPEND);
+}
 
 /** 4G版本下发送命令和回调解析 **/
 /*- 设备上电初始化 -*/
@@ -275,6 +281,17 @@ static void NetWork_init_config_CB_hd(uint8_t *code , uint16_t length)
       if(level == 0){
         usim_rssi = 1;
       }
+      if(usim_rssi == 0)
+      {
+        yk_tm.rssi = 0;
+        yk_tm.bt_sta = false;
+      }
+      else
+      {
+        yk_tm.rssi = usim_rssi;
+        yk_tm.bt_sta = true;
+      }
+      refresh_flag.ble_sta = true;	
       ec801.init_num = 7; //信号强度读取完毕
       ec801.init_cnt = 0;       
     }
@@ -348,6 +365,10 @@ static void NetWork_init_config()
       {//网络检查需要15*3sec时间
         ec801.init_cnt = 0;
         ec801.init_num = 0; 
+        //都超过45秒了，还是检测不到网络附着，不仅结束发送，同时宣布4G连接断开
+        yk_tm.rssi = 0;
+        yk_tm.bt_sta = false;
+        refresh_flag.ble_sta = true;	
       }
       uart_tx_order("AT+CGATT?\r\n",11);
     }
@@ -491,6 +512,17 @@ static void NetWork_send_data_CB_hd(uint8_t *code , uint16_t length)
       if(level == 0){
         usim_rssi = 1;
       }
+      if(usim_rssi == 0)
+      {
+        yk_tm.rssi = 0;
+        yk_tm.bt_sta = false;
+      }
+      else
+      {
+        yk_tm.rssi = usim_rssi;
+        yk_tm.bt_sta = true;
+      }
+      refresh_flag.ble_sta = true;	      
       ec801.send_num = 6; //信号强度读取完毕
       ec801.send_cnt = 0;       
     }
@@ -554,6 +586,10 @@ static void NetWork_send_data()
       {//网络检查需要20sec时间
         ec801.send_cnt = 0;
         ec801.send_num = 7;    //网络半天连接不成功，直接可以停止发送，睡眠去了
+        //都超过20秒了，还是检测CGATT，不仅结束发送，同时宣布4G连接断开
+        yk_tm.rssi = 0;
+        yk_tm.bt_sta = false;
+        refresh_flag.ble_sta = true;	        
       }
       uart_tx_order("AT+CGATT?\r\n",11);
     }

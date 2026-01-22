@@ -76,7 +76,11 @@ void read_sensor_data(yongker_tm_channelDef *chn);
  * @param chn 对应通道
  */
 void check_temp_hum_warming(yongker_tm_channelDef *chn);
-
+/**
+ * @brief 关闭iic 外设
+ * 
+ */
+void disable_iic();
 
 
 
