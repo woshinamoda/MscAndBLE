@@ -25,6 +25,26 @@ uint16_t stop_charging_cnt = 0;
 static void BatAdc_tranTo_BatLev(uint16_t mvolts);
 static void BatAdc_tranTo_FirstBatLeve(uint16_t mvolts);
 
+uint8_t lowPW_intoSleep_cnt = 0;
+static void is_LowPW_powerOff()
+{
+  if(yk_tm.bat_precent == 0)
+  {
+    lowPW_intoSleep_cnt++;
+    if(lowPW_intoSleep_cnt >= 20)
+    {
+      lowPW_intoSleep_cnt = 0;
+      dev_intoSleep_front();
+      dev_intoSleep(true);
+    }
+  }
+  else
+  {
+    lowPW_intoSleep_cnt = 0;
+  }
+}
+
+
 void ssadc_init()
 {
   IRQ_CONNECT(DT_IRQN(DT_NODELABEL(adc)),
@@ -99,6 +119,7 @@ void bat_Systime_handle()
       }
       bat_vol = ((600 * 6) * sample) / (1 << 12);
       BatAdc_tranTo_BatLev(bat_vol);
+      is_LowPW_powerOff(); //检测是否低电量关机
       refresh_flag.adc_sta = true;
       bt_bas_set_battery_level(yk_tm.bat_precent);
       nrf_gpio_pin_clear(BQ_CE);  
@@ -152,12 +173,13 @@ void bat_Systime_handle()
           avr = sub/10;
           bat_vol = ((600 * 6) * avr) / (1 << 12);
           BatAdc_tranTo_BatLev(bat_vol);
+          is_LowPW_powerOff(); //检测是否低电量关机
           refresh_flag.adc_sta = true;
           bt_bas_set_battery_level(yk_tm.bat_precent);
         }
       }  
     }    
-  }
+  }//不充电，测试结束
 }
 static void BatAdc_tranTo_BatLev(uint16_t mvolts)
 {

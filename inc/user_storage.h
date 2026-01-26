@@ -35,4 +35,6 @@ void all_storage_open();
 void readStorage_SendData();
 /* 中断读取操作，初始化所有读取变量 */
 void stop_readStorage_SendSta();
+
+void disable_qspi_mx25r32();
 #endif

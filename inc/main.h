@@ -26,6 +26,11 @@
 #include <hal/nrf_gpio.h>
 // nordic nrfx driver include
 #include <nrfx_gpiote.h>
+//电源管理头文件
+#include <zephyr/device.h>
+#include <zephyr/kernel.h>
+#include <zephyr/pm/device.h>
+#include <zephyr/sys/poweroff.h>
 
 //user set period
 #define RSSI_READ_PERIOD      500     //unit 10ms
@@ -140,13 +145,16 @@ typedef struct
   bool press_flag;
   bool short_flag;
   bool long_flag;
+  bool more_long_flag;
   uint16_t press_cnt;
+  uint16_t long_press_cnt;
 }Button_InitTypeDef;
 typedef struct 
 {
   bool toogle_flag;
   uint8_t active_cnt;
 }Vcheck_InitTypeDef;
+extern Vcheck_InitTypeDef myVcheck;
 /**
  * @brief 固定2.5秒读取一次rssi，并重置绘制信号强度变量
  * @note 只在蓝牙连接时执行
@@ -166,8 +174,15 @@ void yk_tm_order_cb();
 void reback_order_Status(uint8_t *code, uint16_t len);
 /**
  * @brief 判断数据是否等于发送间隔，然后定时发送
- * 
- * @param Tcompare 用于对比的时间间隔
  */
-void send_yktm_Data(uint8_t Tcompare);
+void send_yktm_Data();
+/**
+ * @brief 预关机 
+ */
+void dev_intoSleep_front();
+/**
+ * @brief 彻底关机
+ * 
+ */
+void dev_intoSleep(bool lowPow);
 #endif

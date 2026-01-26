@@ -129,8 +129,11 @@ void display_lcd_init();
  * @brief 断码显示器初始化
  */
 void lcd_ht1621_init();
-
-
+/**
+ * @brief 关闭lcd显示，最低功耗
+ * 
+ */
+void close_lcd_display();
 
 
 

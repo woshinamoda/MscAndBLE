@@ -65,6 +65,13 @@ void button_EvenTimer_handle()
         mykey.long_flag = true;
         mykey.press_cnt = 0;  //重置，循环执行
         button_long_cb();
+        mykey.long_press_cnt++;
+        if(mykey.long_press_cnt > 5)
+        {
+          mykey.long_press_cnt = 0;
+          mykey.more_long_flag = true;
+          button_more_long_cb();
+        }
       }
     }
     else
@@ -72,8 +79,17 @@ void button_EvenTimer_handle()
       mykey.press_flag = false;
       if(mykey.long_flag)
       {
-        mykey.long_flag = false;
-        mykey.press_cnt = 0;
+        if(mykey.more_long_flag)
+        {
+          mykey.more_long_flag = false;
+          dev_intoSleep(false);
+        }
+        else
+        {
+          mykey.long_flag = false;        
+          mykey.long_flag = false;
+          mykey.press_cnt = 0;
+        }
       }
       else
       {
@@ -126,6 +142,10 @@ void button_long_cb()
   refresh_flag.channel_data_sta = true;   
   LOG_INF("key press long\n");
 }
+void button_more_long_cb()
+{
+  dev_intoSleep_front();
+}
 /* ============================================================================================== */
 #define VCHECK_NODE DT_ALIAS(sw1)
 static const struct gpio_dt_spec vcheck_dev = GPIO_DT_SPEC_GET(VCHECK_NODE, gpios);
@@ -156,7 +176,7 @@ void vcheck_EvenTimer_handle()
 {
   if(myVcheck.toogle_flag)
   {
-    myVcheck.active_cnt++;
+    myVcheck.active_cnt++;  //延时50ms
     if(myVcheck.active_cnt >= 5)
     {
       nrf_gpio_pin_clear(BQ_CE); //无论插入还是拔下充电器，ce引脚都拉低

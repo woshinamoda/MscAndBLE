@@ -918,6 +918,11 @@ void stop_readStorage_SendSta()
 	channel_2.sending_sta = false;
 	yk_tm.storage_read_sta = false;	
 }
+void disable_qspi_mx25r32()
+{
+	int rc;
+	rc = pm_device_action_run(flash_dev, PM_DEVICE_ACTION_SUSPEND);
+}
 
 
 

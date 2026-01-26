@@ -30,7 +30,7 @@ void vcheck_gpiote_init();
 void vcheck_EvenTimer_handle();
 
 
-
+void button_more_long_cb();
 
 
 

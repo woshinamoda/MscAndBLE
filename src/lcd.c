@@ -627,8 +627,11 @@ void lcd_ht1621_init()
     writeData_ht1621(i,0x00);
   }
 }
-
-
+void close_lcd_display()
+{
+  writeCmd_ht1621(SYSDIS);
+  writeCmd_ht1621(LCDOFF); 
+}
 
 
 

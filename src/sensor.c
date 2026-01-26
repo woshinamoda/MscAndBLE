@@ -75,7 +75,7 @@ static int sht40_ReadNumBytes(uint8_t *DataBuf, uint8_t number){
   }  
 	return ret;
 }
-static int  bh1750_write_Byte(uint8_t cmd){
+static int bh1750_write_Byte(uint8_t cmd){
   int ret;
   ret = i2c_write_dt(&dev_bh1750, &cmd, 1);
   if(ret != 0)
@@ -163,6 +163,8 @@ void read_sensor_data(yongker_tm_channelDef *chn)
     chn->temp_celsius    = (-45.0 + 175.0 * temp_raw / 65535.0)*10;
     chn->temp_fahrenheit = (-49.0 + 315.0 * temp_raw / 65535.0)*10;
     chn->humidity        = (-6.0 + 125.0 * humid_raw / 65535.0)*10;
+    if(chn->humidity > 100)
+      chn->humidity = 100;
     chn->klux = 0;
   }
   if(chn->channel_type == bh1750)
@@ -237,7 +239,11 @@ uint8_t CheckChn_Sensor_is(uint8_t chn){
   }
   return sensor_is;
 }
-
+void disable_iic_sensor()
+{
+	int rc;
+	rc = pm_device_action_run(i2c_dev, PM_DEVICE_ACTION_SUSPEND);
+}
 
 
 

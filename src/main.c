@@ -47,6 +47,8 @@ bool sensor_read_flag = false;		//允许读取传感器旗标，开机的时候�
 bool storage_flag = false;				//允许存储/发送旗标，运行过程中超过<采样>间隔，置为真。
 uint8_t send_data_buf[28] = {0x55,0xaa};
 
+extern uint8_t interval_compare;	//用于对比采集间隔计时
+
 yongker_TM_initTypedef yk_tm={
 	.warm_icon_sta = false,
 	.bat_level = 0,
@@ -405,11 +407,11 @@ static void anaylse_channelType(yongker_tm_channelDef *chn, uint8_t *data)
 		data[3] = 0x00; 		
 	}
 }
-void send_yktm_Data(uint8_t Tcompare)
+void send_yktm_Data()
 {
-	if(Tcompare >= yk_tm.samp_interval)
+	if(interval_compare >= yk_tm.samp_interval)
 	{
-		Tcompare = 0;
+		interval_compare = 0;
 		storage_flag = true;
 		send_data_buf[0] = 0x55; 
 		send_data_buf[1] = 0xaa;
@@ -439,8 +441,6 @@ void send_yktm_Data(uint8_t Tcompare)
 			reback_order_Status(send_data_buf, 28);
 		}
 	}
-	else
-		Tcompare++;
 }
 /* 串口透传NUS 服务部分代码* end******************************************************************/
 
@@ -466,8 +466,8 @@ static int settings_runtime_load(void)
 #endif
 #if defined(CONFIG_BT_DIS_FW_REV)
 	settings_runtime_set("bt/dis/fw",
-			    	"V0.0.4test",
-			     sizeof("V0.0.4test"));
+			    	"V0.0.5",
+			     sizeof("V0.0.5"));
 #endif
 #if defined(CONFIG_BT_DIS_HW_REV)
 	settings_runtime_set("bt/dis/hw",
@@ -480,6 +480,39 @@ static int settings_runtime_load(void)
 /* 设备信息--- 服务部分代码* end******************************************************************/
 
 /* 用户逻辑功能*----------- start****************************************************************/
+void dev_intoSleep_front()
+{
+	disable_iic_sensor();
+	close_lcd_display();
+	storage_clear_allFile();
+
+}
+void dev_intoSleep(bool lowPow)
+{
+	disable_qspi_mx25r32();
+	nrf_gpio_pin_clear(PCA_RESET); 
+  nrf_gpio_pin_clear(CH1_EN); 
+  nrf_gpio_pin_clear(CH2_EN);     
+  nrf_gpio_pin_clear(LCD_CS);
+  nrf_gpio_pin_clear(LCD_WR);
+  nrf_gpio_pin_clear(LCD_DATA);  
+  nrf_gpio_pin_clear(BQ_CE);
+
+	nrf_gpio_cfg_output(PCA_SDA);
+	nrf_gpio_cfg_output(PCA_SCL);
+  nrf_gpio_pin_clear(PCA_SDA);  
+  nrf_gpio_pin_clear(PCA_SCL);
+	
+	if(lowPow == false)
+	{
+  	nrf_gpio_cfg_input(BUTTON, NRF_GPIO_PIN_NOPULL);
+  	nrf_gpio_cfg_sense_set(BUTTON, NRF_GPIO_PIN_SENSE_LOW); 	
+	}
+  	nrf_gpio_cfg_input(VCHECK, NRF_GPIO_PIN_NOPULL);
+  	nrf_gpio_cfg_sense_set(VCHECK, NRF_GPIO_PIN_SENSE_HIGH); 
+
+	sys_poweroff();
+}
 
 /* 用户逻辑功能*----------- end******************************************************************/
 uint8_t senser_is_num = 0;
@@ -529,6 +562,7 @@ int main(void)
 	button_gpiote_init();
 	vcheck_gpiote_init();
 	sensor_read_flag = true;
+	myVcheck.toogle_flag = true;
 }
 /**
  * @brief： 消费者线程
@@ -613,6 +647,21 @@ static void storage_thread()
 	}
 }
 K_THREAD_DEFINE(storage_ID, STORAGE_SIZE, storage_thread, NULL, NULL, NULL, STORAGE_THREAD_PRIORITY, 0,	0);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
