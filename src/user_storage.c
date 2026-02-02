@@ -253,6 +253,8 @@ void all_storage_close()
 /**********************************************************/
 void storageCutIn_chn0_data()
 {
+	uint8_t end_type = 0x00;
+	end_type = sensorType_is(channel_0);
 	if(channel_0.channel_type != nosensor)
 	{
 		char line[256];
@@ -265,7 +267,7 @@ void storageCutIn_chn0_data()
 		}
 		len = snprintf(line, sizeof(line), "%05d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
 										channel_0.storage_idx,
-										channel_0.channel_type,
+										end_type,
 										timeInfo_stamp.year, timeInfo_stamp.month, timeInfo_stamp.day,
 										timeInfo_stamp.hour, timeInfo_stamp.min,
 										channel_0.temp_celsius,
@@ -293,6 +295,8 @@ void storageCutIn_chn0_data()
 }
 void storageCutIn_chn1_data()
 {
+	uint8_t end_type = 0x00;
+	end_type = sensorType_is(channel_1);	
 	if(channel_1.channel_type != nosensor)
 	{
 		char line[256];
@@ -305,7 +309,7 @@ void storageCutIn_chn1_data()
 		}
 		len = snprintf(line, sizeof(line), "%05d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
 										channel_1.storage_idx,
-										channel_1.channel_type,
+										end_type,
 										timeInfo_stamp.year, timeInfo_stamp.month, timeInfo_stamp.day,
 										timeInfo_stamp.hour, timeInfo_stamp.min,
 										channel_1.temp_celsius,
@@ -333,6 +337,8 @@ void storageCutIn_chn1_data()
 }
 void storageCutIn_chn2_data()
 {
+	uint8_t end_type = 0x00;
+	end_type = sensorType_is(channel_0);	
 	if(channel_2.channel_type != nosensor)
 	{
 		char line[256];
@@ -345,7 +351,7 @@ void storageCutIn_chn2_data()
 		}
 		len = snprintf(line, sizeof(line), "%05d,%01d,%04d-%02d-%02d-%02d-%02d,%04d,%04d,%04d\n",
 										channel_2.storage_idx,
-										channel_2.channel_type,
+										end_type,
 										timeInfo_stamp.year, timeInfo_stamp.month, timeInfo_stamp.day,
 										timeInfo_stamp.hour, timeInfo_stamp.min,
 										channel_2.temp_celsius,
@@ -491,9 +497,9 @@ static int readStorage_chn0Data()
 		sendbuf[6] = hour;
 		sendbuf[7] = min;
 		sendbuf[8] = 0;		/* 通道0👌 */
-		sendbuf[9] = channel_type;
 		if(channel_type == sht40)
 		{
+			sendbuf[9] = channel_type;			
 			sendbuf[10] = (temp >> 8) & 0xff;
 			sendbuf[11] = temp & 0xff;
 			sendbuf[12] = (hum >> 8) & 0xff;
@@ -501,6 +507,7 @@ static int readStorage_chn0Data()
 		}
 		else
 		{//除了温湿度，剩下全是光照
+			sendbuf[9] = 0x02;	
 			sendbuf[10] = (klux >> 8) & 0xff;
 			sendbuf[11] = klux & 0xff;
 			sendbuf[12] = 0x00;
@@ -636,9 +643,9 @@ static int readStorage_chn1Data()
 		sendbuf[6] = hour;
 		sendbuf[7] = min;
 		sendbuf[8] = 1;		/* 通道1👌 */
-		sendbuf[9] = channel_type;
 		if(channel_type == sht40)
 		{
+			sendbuf[9] = channel_type;
 			sendbuf[10] = (temp >> 8) & 0xff;
 			sendbuf[11] = temp & 0xff;
 			sendbuf[12] = (hum >> 8) & 0xff;
@@ -646,6 +653,7 @@ static int readStorage_chn1Data()
 		}
 		else
 		{//除了温湿度，剩下全是光照
+			sendbuf[9] = 0x02;
 			sendbuf[10] = (klux >> 8) & 0xff;
 			sendbuf[11] = klux & 0xff;
 			sendbuf[12] = 0x00;
@@ -781,9 +789,9 @@ static int readStorage_chn2Data()
 		sendbuf[6] = hour;
 		sendbuf[7] = min;
 		sendbuf[8] = 2;		/* 通道2👌 */
-		sendbuf[9] = channel_type;
 		if(channel_type == sht40)
 		{
+			sendbuf[9] = channel_type;
 			sendbuf[10] = (temp >> 8) & 0xff;
 			sendbuf[11] = temp & 0xff;
 			sendbuf[12] = (hum >> 8) & 0xff;
@@ -791,6 +799,7 @@ static int readStorage_chn2Data()
 		}
 		else
 		{//除了温湿度，剩下全是光照
+			sendbuf[9] = 0x02;
 			sendbuf[10] = (klux >> 8) & 0xff;
 			sendbuf[11] = klux & 0xff;
 			sendbuf[12] = 0x00;

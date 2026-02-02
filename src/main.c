@@ -423,15 +423,15 @@ void send_yktm_Data()
 		send_data_buf[7] = timeInfo_stamp.min;
 		//channel 0
 		send_data_buf[8] = 0x00;
-		send_data_buf[9] = channel_0.channel_type;
+		send_data_buf[9] = sensorType_is(channel_0);
 		anaylse_channelType(&channel_0,&send_data_buf[10]);
 		//channel 1
 		send_data_buf[14] = 0x01;
-		send_data_buf[15] = channel_1.channel_type;
+		send_data_buf[15] = sensorType_is(channel_1);
 		anaylse_channelType(&channel_1,&send_data_buf[16]);
 		//channel 2
 		send_data_buf[20] = 0x02;
-		send_data_buf[21] = channel_2.channel_type;
+		send_data_buf[21] = sensorType_is(channel_2);
 		anaylse_channelType(&channel_2,&send_data_buf[22]);
 		//包尾
 		send_data_buf[26] = 0x66;
@@ -466,8 +466,8 @@ static int settings_runtime_load(void)
 #endif
 #if defined(CONFIG_BT_DIS_FW_REV)
 	settings_runtime_set("bt/dis/fw",
-			    	"V0.0.5",
-			     sizeof("V0.0.5"));
+			    	"V0.1.6",
+			     sizeof("V0.1.6"));
 #endif
 #if defined(CONFIG_BT_DIS_HW_REV)
 	settings_runtime_set("bt/dis/hw",

@@ -163,8 +163,8 @@ void read_sensor_data(yongker_tm_channelDef *chn)
     chn->temp_celsius    = (-45.0 + 175.0 * temp_raw / 65535.0)*10;
     chn->temp_fahrenheit = (-49.0 + 315.0 * temp_raw / 65535.0)*10;
     chn->humidity        = (-6.0 + 125.0 * humid_raw / 65535.0)*10;
-    if(chn->humidity > 100)
-      chn->humidity = 100;
+    if(chn->humidity > 1000)
+      chn->humidity = 1000;
     chn->klux = 0;
   }
   if(chn->channel_type == bh1750)
@@ -178,7 +178,7 @@ void read_sensor_data(yongker_tm_channelDef *chn)
     chn->humidity        = 0;
     //原本应该除以1000，转klux，现在是lux。改为除10，这样保留2位小数
     //另外手册要求除以120，实测彭云确实除了0.46，最大可以卡在120klux    
-    chn->klux = plux * 100 / 96 / 10;
+    chn->klux = plux * 100 / 120 / 10;
     if(chn->klux >= 9999)
       chn->klux = 9999;    
   }
@@ -244,7 +244,19 @@ void disable_iic_sensor()
 	int rc;
 	rc = pm_device_action_run(i2c_dev, PM_DEVICE_ACTION_SUSPEND);
 }
-
+uint8_t sensorType_is(yongker_tm_channelDef chn)
+{
+  uint8_t typeSen = 0x00;
+  if(chn.channel_type == nosensor)
+    typeSen = nosensor;
+  else if(chn.channel_type == sht40)
+    typeSen = 0x01;
+  else if(chn.channel_type == bh1750)
+    typeSen = 0x02;
+  else if(chn.channel_type == max44009)
+    typeSen = 0x02;      
+  return  typeSen;
+}
 
 
 

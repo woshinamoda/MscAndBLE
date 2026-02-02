@@ -78,7 +78,7 @@ void read_sensor_data(yongker_tm_channelDef *chn);
 void check_temp_hum_warming(yongker_tm_channelDef *chn);
 
 void disable_iic_sensor();
-
+uint8_t sensorType_is(yongker_tm_channelDef chn);
 
 
 

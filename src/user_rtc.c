@@ -58,8 +58,8 @@ static void secAll_to_timeInfo(timeinfo_TypeDef *tm)
 	{
 		tm->sec = 0;
 		interval_compare++;	//每过1min，用于对比时间间隔的变量也自增
-		send_yktm_Data();
 		tm->min++;		
+		send_yktm_Data();
 		/*min -> hour */
 		if(tm->min >= 60)
 		{
